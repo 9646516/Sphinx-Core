@@ -1,21 +1,13 @@
-use shiplift::Docker;
-use shiplift::builder::ContainerListOptionsBuilder;
-use tokio::prelude::Future;
-use std::collections::HashMap;
+use dockworker::{container::ContainerFilters, Docker};
+use std::process::exit;
 use std::string::String;
 
-fn main() {
-    let docker = Docker::new();
-    let mut builder = ContainerListOptionsBuilder::default();
-    let fut = docker
-        .containers()
-        .list(&builder.all().build())
-        .map(|containers| {
-            for c in containers {
-                println!("container -> {:#?}", c)
-            }
-        })
-        .map_err(|e| eprintln!("Error: {}", e));
+pub mod utils;
 
-    tokio::run(fut);
+fn main() {
+    let docker = Docker::connect_with_defaults().unwrap();
+    let filter = ContainerFilters::new();
+    utils::DockerUtils::RemoveAll(&docker, filter);
+    let id = utils::DockerUtils::AddNew(&docker, "alpine", "wtmsb");
+    println!("{}", utils::DockerUtils::Test(&docker, &id, "ls"));
 }
