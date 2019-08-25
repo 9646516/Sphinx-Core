@@ -6,7 +6,8 @@ use dockworker::{
 pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) {
     println!(
         "{}",
-        DockerUtils::RunCmd(id, format!("echo \"{}\" > /code/{}.cpp", code, index)).unwrap()
+        DockerUtils::RunCmd(id, format!("echo \"{}\" > /code/{}.cpp", code, index), 1000)
+            .expect("Copy Code File Failed")
     );
 }
 

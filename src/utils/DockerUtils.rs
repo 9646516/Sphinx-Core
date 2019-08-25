@@ -2,6 +2,8 @@ use std::io::Read;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
+use crossbeam::crossbeam_channel;
+use crossbeam::channel;
 
 use dockworker::{
     container::ContainerFilters, ContainerCreateOptions, CreateExecOptions, CreateExecResponse,
@@ -33,17 +35,19 @@ pub fn AddNew(docker: &Docker, image: &str, name: &str) -> String {
         .create_container(Some(name), &create)
         .expect("Add new Failed");
     docker.start_container(&container.id).unwrap();
-    RunCmd(&container.id, "mkdir /code".to_string());
+    RunCmd(&container.id, "mkdir /code".to_string(), 1000).expect("Create Fold Failed");
     return container.id;
 }
 
-pub fn RunCmd(id: &str, cmd: String) -> Result<String, String> {
-    let mut buf: Vec<u8> = Vec::new();
+pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
     let op = Instant::now();
-    let mut done = RwLock::new(false);
+    let mut done=false;
+    let (sx,rx)=crossbeam_channel::bounded(1);
+    let mut ret=String::new();
     crossbeam::thread::scope(|s| {
         s.spawn(|_| {
             let docker = Docker::connect_with_defaults().unwrap();
+            let mut buf: Vec<u8> = Vec::new();
             let idx = docker
                 .exec_container(
                     id,
@@ -61,25 +65,26 @@ pub fn RunCmd(id: &str, cmd: String) -> Result<String, String> {
                 .unwrap()
                 .read_to_end(&mut buf)
                 .unwrap();
-            *done.write().unwrap() = true;
+            ret=String::from_utf8(buf).unwrap();
+            sx.send(()).unwrap();
         });
 
         s.spawn(|_| {
-            while Instant::now().duration_since(op) < Duration::from_millis(1000u64) {
-                if *done.read().unwrap() {
-                    break;
+            while Instant::now().duration_since(op) < Duration::from_millis(ttl) {
+                if rx.try_recv().is_ok() {
+                    done=true;
                 }
             }
-            if !*done.read().unwrap() {
+            if !done {
                 let docker = Docker::connect_with_defaults().unwrap();
                 docker
                     .restart_container(id, Duration::from_micros(0))
                     .expect("Restart Failed");
             }
         });
-    });
-    match buf.is_empty() {
-        true => Ok(String::from_utf8(buf).unwrap()),
+    }).expect("Cmd Failed");
+    match  done{
+        true => Ok(ret),
         false => Err("Time Limit Error".to_string()),
     }
 }
