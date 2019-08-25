@@ -1,7 +1,10 @@
-use dockworker::{container::ContainerFilters, Docker};
+#![allow(non_snake_case)]
+#![allow(unused_variables)]
 use std::fs::read_to_string;
 use std::process::exit;
 use std::string::String;
+
+use dockworker::{container::ContainerFilters, Docker};
 
 pub mod utils;
 
@@ -14,7 +17,7 @@ fn main() {
     let path = "test/1.cpp";
     let cpp = read_to_string(path).unwrap();
     //    utils::DockerUtils::CopyFiles(&docker, id, &cpp, &114514);
-    let res = utils::DockerUtils::RunCmd(id, "apt moo".to_string(), 1000).unwrap();
-    println!("{}", res);
+    let res = utils::SphinxCore::Compiler(&docker,id,&cpp,&1u32);
+    println!("{} {}", res.info,res.status);
     println!("DONE");
 }

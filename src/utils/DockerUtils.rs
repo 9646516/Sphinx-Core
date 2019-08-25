@@ -2,9 +2,9 @@ use std::io::Read;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
-use crossbeam::crossbeam_channel;
-use crossbeam::channel;
 
+use crossbeam::channel;
+use crossbeam::crossbeam_channel;
 use dockworker::{
     container::ContainerFilters, ContainerCreateOptions, CreateExecOptions, CreateExecResponse,
     Docker, StartExecOptions,
@@ -41,9 +41,9 @@ pub fn AddNew(docker: &Docker, image: &str, name: &str) -> String {
 
 pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
     let op = Instant::now();
-    let mut done=false;
-    let (sx,rx)=crossbeam_channel::bounded(1);
-    let mut ret=String::new();
+    let mut done = false;
+    let (sx, rx) = crossbeam_channel::bounded(1);
+    let mut ret = String::new();
     crossbeam::thread::scope(|s| {
         s.spawn(|_| {
             let docker = Docker::connect_with_defaults().unwrap();
@@ -65,14 +65,14 @@ pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
                 .unwrap()
                 .read_to_end(&mut buf)
                 .unwrap();
-            ret=String::from_utf8(buf).unwrap();
+            ret = String::from_utf8(buf).unwrap();
             sx.send(()).unwrap();
         });
 
         s.spawn(|_| {
             while Instant::now().duration_since(op) < Duration::from_millis(ttl) {
                 if rx.try_recv().is_ok() {
-                    done=true;
+                    done = true;
                 }
             }
             if !done {
@@ -82,8 +82,9 @@ pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
                     .expect("Restart Failed");
             }
         });
-    }).expect("Cmd Failed");
-    match  done{
+    })
+        .expect("Cmd Failed");
+    match done {
         true => Ok(ret),
         false => Err("Time Limit Error".to_string()),
     }
