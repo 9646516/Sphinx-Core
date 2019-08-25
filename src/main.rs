@@ -13,5 +13,8 @@ fn main() {
     let id = "wtmsb";
     let path = "test/1.cpp";
     let cpp = read_to_string(path).unwrap();
-    utils::DockerUtils::CopyFiles(&docker, id, &cpp, &114514);
+    //    utils::DockerUtils::CopyFiles(&docker, id, &cpp, &114514);
+    let res = utils::DockerUtils::RunCmd(id, "apt moo".to_string()).unwrap();
+    println!("{}", res);
+    println!("DONE");
 }

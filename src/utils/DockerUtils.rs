@@ -1,5 +1,7 @@
 use std::io::Read;
-use std::time::Duration;
+use std::sync::Arc;
+use std::sync::RwLock;
+use std::time::{Duration, Instant};
 
 use dockworker::{
     container::ContainerFilters, ContainerCreateOptions, CreateExecOptions, CreateExecResponse,
@@ -23,12 +25,6 @@ pub fn Remove(docker: &Docker, name: &str) {
         .expect("Remove Failed");
 }
 
-pub fn Restart(docker: &Docker, name: &str) {
-    docker
-        .restart_container(name, Duration::from_micros(0))
-        .expect("Restart Failed");
-}
-
 pub fn AddNew(docker: &Docker, image: &str, name: &str) -> String {
     let mut create = ContainerCreateOptions::new(image);
     create.tty(true);
@@ -37,39 +33,53 @@ pub fn AddNew(docker: &Docker, image: &str, name: &str) -> String {
         .create_container(Some(name), &create)
         .expect("Add new Failed");
     docker.start_container(&container.id).unwrap();
-    RunCmd(docker, &container.id, "mkdir /code".to_string());
+    RunCmd(&container.id, "mkdir /code".to_string());
     return container.id;
 }
 
-pub fn RunCmd(docker: &Docker, id: &str, cmd: String) -> String {
-    let idx = docker
-        .exec_container(
-            id,
-            &CreateExecOptions::new()
-                .tty(true)
-                .cmd("sh".to_string())
-                .cmd("-c".to_string())
-                .cmd(cmd),
-        )
-        .unwrap()
-        .id;
-    let mut res = docker
-        .start_exec(&idx, &StartExecOptions::new().tty(true))
-        .unwrap()
-        .unwrap();
-    let mut buf = Vec::new();
-    res.read_to_end(&mut buf);
-    return String::from_utf8(buf).unwrap();
-}
+pub fn RunCmd(id: &str, cmd: String) -> Result<String, String> {
+    let mut buf: Vec<u8> = Vec::new();
+    let op = Instant::now();
+    let mut done = RwLock::new(false);
+    crossbeam::thread::scope(|s| {
+        s.spawn(|_| {
+            let docker = Docker::connect_with_defaults().unwrap();
+            let idx = docker
+                .exec_container(
+                    id,
+                    &CreateExecOptions::new()
+                        .tty(true)
+                        .cmd("sh".to_string())
+                        .cmd("-c".to_string())
+                        .cmd(cmd),
+                )
+                .unwrap()
+                .id;
+            docker
+                .start_exec(&idx, &StartExecOptions::new().tty(true))
+                .unwrap()
+                .unwrap()
+                .read_to_end(&mut buf)
+                .unwrap();
+            *done.write().unwrap() = true;
+        });
 
-pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) {
-    println!("{}", code);
-    println!(
-        "{}",
-        RunCmd(
-            docker,
-            id,
-            format!("echo \"{}\" > /code/{}.cpp", code, index),
-        )
-    );
+        s.spawn(|_| {
+            while Instant::now().duration_since(op) < Duration::from_millis(1000u64) {
+                if *done.read().unwrap() {
+                    break;
+                }
+            }
+            if !*done.read().unwrap() {
+                let docker = Docker::connect_with_defaults().unwrap();
+                docker
+                    .restart_container(id, Duration::from_micros(0))
+                    .expect("Restart Failed");
+            }
+        });
+    });
+    match buf.is_empty() {
+        true => Ok(String::from_utf8(buf).unwrap()),
+        false => Err("Time Limit Error".to_string()),
+    }
 }
