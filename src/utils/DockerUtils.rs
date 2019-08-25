@@ -10,33 +10,16 @@ use dockworker::{
     Docker, StartExecOptions,
 };
 
-pub fn RemoveAll(docker: &Docker, filter: ContainerFilters) {
+pub fn GetContainers(docker: &Docker) ->Vec<String> {
+    let filter = ContainerFilters::new();
     let containers = docker
         .list_containers(Some(true), None, None, filter)
         .unwrap();
-    containers.iter().for_each(|c| {
-        docker
-            .remove_container(&c.Id, None, Some(true), None)
-            .expect("RemoveAll Failed");
-    });
-}
-
-pub fn Remove(docker: &Docker, name: &str) {
-    docker
-        .remove_container(name, None, Some(true), None)
-        .expect("Remove Failed");
-}
-
-pub fn AddNew(docker: &Docker, image: &str, name: &str) -> String {
-    let mut create = ContainerCreateOptions::new(image);
-    create.tty(true);
-    create.open_stdin(true);
-    let container = docker
-        .create_container(Some(name), &create)
-        .expect("Add new Failed");
-    docker.start_container(&container.id).unwrap();
-    RunCmd(&container.id, "mkdir /code".to_string(), 1000).expect("Create Fold Failed");
-    return container.id;
+    let mut ret=Vec::new();
+    for i in&containers{
+        ret.push(i.Id.clone());
+    }
+    return ret;
 }
 
 pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {

@@ -4,6 +4,9 @@ use dockworker::{
 };
 use std::string::String;
 use std::path::Path;
+use std::fs::File;
+use std::fs;
+use std::io::prelude::*;
 
 pub enum CompileStatus {
     SUCCESS,
@@ -25,12 +28,15 @@ pub struct CompileResult{
     pub info:String
 }
 use super::DockerUtils;
-
+const WORK_DIR:&str = "/home/rinne/code/";
 pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) {
-    DockerUtils::RunCmd(id, format!("mkdir  /code/{}", index), 1000)
-        .expect("Create Code Fold  Failed");
-    DockerUtils::RunCmd(id, format!("echo -e \"{}\" > /code/{}/main.cpp", code, index), 1000)
-        .expect("Copy Code File Failed");
+    let dir=format!("{}/{}",WORK_DIR,index);
+    let pdir=Path::new(&dir);
+    if !pdir.exists(){
+        fs::create_dir(pdir).expect("create dir failed");
+    }
+    let mut file = File::create(format!("{}/{}/main.cpp",WORK_DIR,index)).expect("create file failed");
+    file.write_all(code.as_bytes()).expect("copy failed");
 }
 
 pub fn Compiler(docker: &Docker, id: &str, code: &String, index: &u32) ->CompileResult{
