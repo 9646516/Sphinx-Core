@@ -1,3 +1,4 @@
+use super::SphinxCore::Env::*;
 use super::Utils::DockerUtils;
 use dockworker::Docker;
 use std::fs;
@@ -25,8 +26,6 @@ pub struct CompileResult {
     pub status: CompileStatus,
     pub info: String,
 }
-
-const WORK_DIR: &str = "/home/rinne/code/";
 
 pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) -> Result<(), String> {
     let dir = format!("{}/{}", WORK_DIR, index);

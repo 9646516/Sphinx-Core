@@ -13,6 +13,7 @@
  * Run programs on Linux with resource limited.
  * Based on setrlimit.(https://linux.die.net/man/2/setrlimit)
  * Author: Ke Shen
+ * Modified By 9646516
  * Argvs:
     + argv[1]: Time limit(cpu time): milliseconds
     + argv[2]: Memory limit: bytes
@@ -43,7 +44,7 @@ char *input_sourcefile, *output_sourcefile, *answer_sourcefile, *running_argumen
     } while (0)
 #define goodExit(msg, timecost, memorycost)                                                                                       \
     do {                                                                                                                          \
-        fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": \"%lld\" , \"memory_cost\": \"%ld\" }\n", msg, timecost, memorycost); \
+        fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": \"%lld\" , \"memory_cost\": \"%lld\" }\n", msg,(long long) timecost,(long long) memorycost); \
         exit(0);                                                                                                                  \
     } while (0)
 
@@ -57,7 +58,7 @@ char *input_sourcefile, *output_sourcefile, *answer_sourcefile, *running_argumen
     } while (0)
 
 void genrate_checker_command() {
-    sprintf(checker_arguments, "./%s.bin %s %s %s 1>/dev/null 2>&1", checker_sourcefile, input_sourcefile, output_sourcefile, answer_sourcefile);
+    sprintf(checker_arguments, "%s %s %s %s", checker_sourcefile, input_sourcefile, output_sourcefile, answer_sourcefile);
 }
 
 void wait_to_kill_childprocess() {
@@ -110,6 +111,7 @@ int main(int argc, char *argv[]) {
         if (status_code != 0)
             goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
         int checker_statuscode = system(checker_arguments);
+        printf("%s\n",checker_arguments);
         if (checker_statuscode == 0)
             goodExit("Accepted", timecost / 1000, result.ru_maxrss);
         else if (checker_statuscode > 256)

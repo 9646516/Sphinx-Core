@@ -1,9 +1,8 @@
+use super::SphinxCore::Env::*;
 use super::Utils::DockerUtils;
+use crate::Utils::DockerUtils::RunCmd;
 use dockworker::Docker;
 use std::path::Path;
-
-const DATA_DIR: &str = "/home/rinne/data/";
-const NORMAL_JUDGE: &str = "./Jury";
 
 #[derive(Eq, PartialEq)]
 pub enum JudgeStatus {
@@ -38,16 +37,28 @@ pub struct JudgeResult {
 pub fn Run(
     docker: &Docker,
     ContainerId: &str,
-    SubmissionId: &u32,
-    InputDir: &Path,
-    SpecialJudge: Option<&Path>,
+    RunID: &u32,
+    DataID: &str,
+    prefix: &String,
+    SpecialJudge: Option<&str>,
 ) -> JudgeStatus {
-    match SpecialJudge {
-        Some(judge) => {}
-        None => {
-            let judge = Path::new(&NORMAL_JUDGE.to_string());
+    let checker = {
+        match SpecialJudge {
+            Some(judge) => judge,
+            None => "\"/code/Jury\"",
         }
-    }
+    };
+    let inputfile = format!("\"/data/{}/{}.in\"", DataID, prefix);
+    let outputfile = format!("\"/data/{}/{}.out\"", DataID, prefix);
+    let temp = format!("\"/code/{}/res\"", RunID);
+    let run = format!("\"/code/{}/o\"", RunID);
+    let cmd = format!(
+        "/code/core {} {} {} {} {} {} {} {} {}",
+        1000, 256_000_000, 64_000_000, 512_000_000, inputfile, temp, outputfile, run, checker
+    );
+    println!("{}", cmd);
+    let (status, info) = RunCmd(docker, ContainerId, cmd);
+    println!("{} {}", status, info);
     JudgeStatus::ACCEPTED
 }
 
@@ -59,37 +70,40 @@ pub fn Judge(
     SpecialJudge: bool,
 ) -> JudgeResult {
     let str = format!("{}{}", DATA_DIR, DataUID);
-    let p = format!("{}/o", str);
     let path = Path::new(str.as_str());
     let mut test_case = Vec::new();
+    println!("{:?}", path);
     for entry in path.read_dir().expect("read_dir call failed") {
         if let Ok(entry) = entry {
-            let dir = entry.path().to_str().unwrap().to_string();
-            if dir.contains(".in") {
-                test_case.push(dir.replace(".in", ""));
+            let buf = entry.path();
+            println!("{:?}", buf);
+            let prefix = buf.file_name().unwrap().to_str().unwrap();
+            let suffix = buf.extension();
+            if suffix.is_some() && suffix.unwrap().to_str().unwrap() == "in" {
+                test_case.push(prefix.to_string().replace(".in", ""));
             }
         }
     }
+    println!("OUT");
+
     let mut last = 0;
     if SpecialJudge {
         DockerUtils::RunCmd(
             docker,
             ContainerId,
-            format!("g++ {}/judge.cpp -o {}/o -O2", str, str),
+            format!("g++ /data/{}/judge.cpp -o /data/{}/o -O2", DataUID, DataUID),
         );
     }
+    let p = format!("\"/data/{}/o\"", DataUID);
     for i in &test_case {
-        print!("{}", i);
+        println!("{}", i);
         let status = Run(
             docker,
             ContainerId,
             SubmissionId,
-            Path::new(&i),
-            if SpecialJudge {
-                Some(Path::new(&p))
-            } else {
-                None
-            },
+            &DataUID,
+            i,
+            if SpecialJudge { Some(&p) } else { None },
         );
         if status != JudgeStatus::ACCEPTED {
             return JudgeResult { status, last };

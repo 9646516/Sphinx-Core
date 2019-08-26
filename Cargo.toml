@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 dockworker = "0.0.14"
+json = "0.11.15"
