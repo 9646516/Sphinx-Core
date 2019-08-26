@@ -43,26 +43,24 @@ pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) -> Resul
         Err(T) => Err("write file failed".to_string()),
     }
 }
-
 pub fn Compiler(docker: &Docker, id: &str, code: &String, index: &u32) -> CompileResult {
     match CopyFiles(&docker, id, code, index) {
         Ok(T) => {
-            let res = DockerUtils::RunCmd(
+            let (code, info) = DockerUtils::RunCmd(
                 id,
                 format!(
-                    "g++ /code/{}/main.cpp -o /code/{}/o -O2 -Wall -std=c++17",
+                    "timeout 3s g++ /code/{}/main.cpp -o /code/{}/o -O2 -Wall -std=c++17",
                     index, index
                 ),
-                3000,
             );
-            match res {
-                Ok(T) => CompileResult {
+            match code {
+                0 => CompileResult {
                     status: CompileStatus::SUCCESS,
-                    info: T,
+                    info,
                 },
-                Err(T) => CompileResult {
+                _ => CompileResult {
                     status: CompileStatus::FAILED,
-                    info: T,
+                    info,
                 },
             }
         }

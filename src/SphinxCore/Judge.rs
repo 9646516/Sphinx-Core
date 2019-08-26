@@ -2,6 +2,7 @@ use dockworker::Docker;
 use std::path::Path;
 
 const DATA_DIR: &str = "/home/rinne/data/";
+const NORMAL_JUDGE: &str = "./Jury";
 
 #[derive(Eq, PartialEq)]
 pub enum JudgeStatus {
@@ -38,12 +39,23 @@ pub fn Run(
     ContainerId: &str,
     SubmissionId: &u32,
     InputDir: &Path,
-    OutputDir: &Path,
+    SpecialJudge: Option<&Path>,
 ) -> JudgeStatus {
+    if SpecialJudge.is_some() {
+        let Some(judge) = SpecialJudge;
+    } else {
+        let judge = Path::new(&NORMAL_JUDGE.to_string());
+    }
     JudgeStatus::ACCEPTED
 }
 
-pub fn Judge(docker: &Docker, ContainerId: &str, SubmissionId: &u32, DataUID: &str) -> JudgeResult {
+pub fn Judge(
+    docker: &Docker,
+    ContainerId: &str,
+    SubmissionId: &u32,
+    DataUID: &str,
+    SpecialJudge: bool,
+) -> JudgeResult {
     let str = format!("{}{}", DATA_DIR, DataUID);
     let path = Path::new(str.as_str());
     let mut test_case = Vec::new();
@@ -51,20 +63,23 @@ pub fn Judge(docker: &Docker, ContainerId: &str, SubmissionId: &u32, DataUID: &s
         if let Ok(entry) = entry {
             let dir = entry.path().to_str().unwrap().to_string();
             if dir.contains(".in") {
-                let kano = dir.replace(".in", ".out");
-                test_case.push(vec![dir, kano]);
+                test_case.push(dir.replace(".in", ""));
             }
         }
     }
     let mut last = 0;
     for i in &test_case {
-        print!("{} {}", i[0], i[1]);
+        print!("{}", i);
         let status = Run(
             docker,
             ContainerId,
             SubmissionId,
-            Path::new(&i[0]),
-            Path::new(&i[1]),
+            Path::new(&i),
+            if SpecialJudge {
+                Some(Path::new(&format!("{}/o", str)))
+            } else {
+                None
+            },
         );
         if status != JudgeStatus::ACCEPTED {
             return JudgeResult { status, last };

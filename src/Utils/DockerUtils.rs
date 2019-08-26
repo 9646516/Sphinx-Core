@@ -14,7 +14,7 @@ pub fn GetContainers(docker: &Docker) -> Vec<String> {
     return ret;
 }
 
-pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
+pub fn RunCmd(id: &str, cmd: String) -> (u32, String) {
     let docker = Docker::connect_with_defaults().unwrap();
     let mut buf: Vec<u8> = Vec::new();
     let idx = docker
@@ -24,7 +24,7 @@ pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
                 .tty(true)
                 .cmd("sh".to_string())
                 .cmd("-c".to_string())
-                .cmd(format!("timeout {} {}", ttl as f32 / 1000.0, cmd)),
+                .cmd(cmd),
         )
         .unwrap()
         .id;
@@ -36,9 +36,5 @@ pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
         .unwrap();
     let status = docker.exec_inspect(&idx).unwrap().ExitCode.unwrap();
     let info = String::from_utf8(buf).unwrap();
-    match status {
-        0 => Ok(info),
-        124 => Err("Command Exec too Much Time".to_string()),
-        _ => Err(info),
-    }
+    (status, info)
 }

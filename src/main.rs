@@ -15,5 +15,5 @@ fn main() {
     let idx = Utils::DockerUtils::GetContainers(&docker);
     let res = SphinxCore::Compiler::Compiler(&docker, &idx[0], &cpp, &1u32);
     println!("{} {}", res.status, res.info);
-    SphinxCore::Judge::Judge(&docker, &idx[0], &1u32, "a+b");
+    SphinxCore::Judge::Judge(&docker, &idx[0], &1u32, "a+b", false);
 }
