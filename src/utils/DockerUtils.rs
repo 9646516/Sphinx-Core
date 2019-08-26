@@ -10,13 +10,13 @@ use dockworker::{
     Docker, StartExecOptions,
 };
 
-pub fn GetContainers(docker: &Docker) ->Vec<String> {
+pub fn GetContainers(docker: &Docker) -> Vec<String> {
     let filter = ContainerFilters::new();
     let containers = docker
         .list_containers(Some(true), None, None, filter)
         .unwrap();
-    let mut ret=Vec::new();
-    for i in&containers{
+    let mut ret = Vec::new();
+    for i in &containers {
         ret.push(i.Id.clone());
     }
     return ret;
@@ -66,7 +66,7 @@ pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
             }
         });
     })
-        .expect("Cmd Failed");
+    .expect("Cmd Failed");
     match done {
         true => Ok(ret),
         false => Err("Time Limit Error".to_string()),
