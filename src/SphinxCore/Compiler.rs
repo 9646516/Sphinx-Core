@@ -1,13 +1,12 @@
-use dockworker::{
-    container::ContainerFilters, ContainerCreateOptions, CreateExecOptions, CreateExecResponse,
-    Docker, StartExecOptions,
-};
+use super::Utils::DockerUtils;
+use dockworker::Docker;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::string::String;
 
+#[derive(Eq, PartialEq)]
 pub enum CompileStatus {
     SUCCESS,
     FAILED,
@@ -26,8 +25,6 @@ pub struct CompileResult {
     pub status: CompileStatus,
     pub info: String,
 }
-
-use super::DockerUtils;
 
 const WORK_DIR: &str = "/home/rinne/code/";
 
@@ -73,41 +70,5 @@ pub fn Compiler(docker: &Docker, id: &str, code: &String, index: &u32) -> Compil
             status: CompileStatus::FAILED,
             info: T,
         },
-    }
-}
-
-pub enum JudgeStatus {
-    ACCEPTED,
-    WRONG_ANSWER,
-    TIME_LIMITED_ERROR,
-    RUNTIME_ERROR,
-    MEMORY_LIMITED_ERROR,
-    UNKNOWN_ERROR,
-    COMPILE_ERROR,
-}
-
-impl std::fmt::Display for JudgeStatus {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            JudgeStatus::ACCEPTED => write!(fmt, "ACCEPTED"),
-            JudgeStatus::WRONG_ANSWER => write!(fmt, "WRONG_ANSWER"),
-            JudgeStatus::TIME_LIMITED_ERROR => write!(fmt, "TIME_LIMITED_ERROR"),
-            JudgeStatus::RUNTIME_ERROR => write!(fmt, "RUNTIME_ERROR"),
-            JudgeStatus::MEMORY_LIMITED_ERROR => write!(fmt, "MEMORY_LIMITED_ERROR"),
-            JudgeStatus::UNKNOWN_ERROR => write!(fmt, "UNKNOWN_ERROR"),
-            JudgeStatus::COMPILE_ERROR => write!(fmt, "COMPILE_ERROR"),
-        }
-    }
-}
-
-pub struct JudgeResult {
-    pub status: JudgeStatus,
-    pub info: String,
-}
-
-pub fn Judge(id: &str, index: &u32) -> JudgeResult {
-    JudgeResult {
-        status: JudgeStatus::ACCEPTED,
-        info: String::new(),
     }
 }

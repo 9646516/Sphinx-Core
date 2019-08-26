@@ -1,14 +1,6 @@
 use std::io::Read;
-use std::sync::Arc;
-use std::sync::RwLock;
-use std::time::{Duration, Instant};
 
-use crossbeam::channel;
-use crossbeam::crossbeam_channel;
-use dockworker::{
-    container::ContainerFilters, ContainerCreateOptions, CreateExecOptions, CreateExecResponse,
-    Docker, StartExecOptions,
-};
+use dockworker::{container::ContainerFilters, CreateExecOptions, Docker, StartExecOptions};
 
 pub fn GetContainers(docker: &Docker) -> Vec<String> {
     let filter = ContainerFilters::new();
@@ -25,7 +17,6 @@ pub fn GetContainers(docker: &Docker) -> Vec<String> {
 pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
     let docker = Docker::connect_with_defaults().unwrap();
     let mut buf: Vec<u8> = Vec::new();
-    //    println!("{}", format!("timeout {} {}", ttl as f32 / 1000.0, cmd));
     let idx = docker
         .exec_container(
             id,
@@ -45,7 +36,6 @@ pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
         .unwrap();
     let status = docker.exec_inspect(&idx).unwrap().ExitCode.unwrap();
     let info = String::from_utf8(buf).unwrap();
-    //    println!("{}\n{}", status, info);
     match status {
         0 => Ok(info),
         124 => Err("Command Exec too Much Time".to_string()),

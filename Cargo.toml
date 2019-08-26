@@ -8,4 +8,3 @@ edition = "2018"
 
 [dependencies]
 dockworker = "0.0.14"
-crossbeam = "0.7.2"
