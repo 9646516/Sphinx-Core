@@ -1,11 +1,13 @@
-use super::SphinxCore::Env::*;
-use super::Utils::DockerUtils;
-use dockworker::Docker;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::string::String;
+
+use dockworker::Docker;
+
+use super::SphinxCore::Env::*;
+use super::Utils::DockerUtils;
 
 #[derive(Eq, PartialEq)]
 pub enum CompileStatus {

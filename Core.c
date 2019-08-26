@@ -42,10 +42,10 @@ char *input_sourcefile, *output_sourcefile, *answer_sourcefile, *running_argumen
         fprintf(stdout, "{\"result\":\"%s\", \"additional_info\": \"%s\" }\n", "Judger Error", msg); \
         exit(-1);                                                                                    \
     } while (0)
-#define goodExit(msg, timecost, memorycost)                                                                                       \
-    do {                                                                                                                          \
-        fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": \"%lld\" , \"memory_cost\": \"%lld\" }\n", msg,(long long) timecost,(long long) memorycost); \
-        exit(0);                                                                                                                  \
+#define goodExit(msg, timecost, memorycost)                                                                                                              \
+    do {                                                                                                                                                 \
+        fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": \"%lld\" , \"memory_cost\": \"%lld\" }\n", msg, (long long)timecost, (long long)memorycost); \
+        exit(0);                                                                                                                                         \
     } while (0)
 
 #define set_limit(type, value, ext)     \
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
         if (status_code != 0)
             goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
         int checker_statuscode = system(checker_arguments);
-        printf("%s\n",checker_arguments);
+        printf("%s\n", checker_arguments);
         if (checker_statuscode == 0)
             goodExit("Accepted", timecost / 1000, result.ru_maxrss);
         else if (checker_statuscode > 256)
