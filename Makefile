@@ -1,4 +1,4 @@
-all:
+deploy:
 	rm -rf /home/rinne/code
 	mkdir /home/rinne/code
 	sudo chmod -R 777 /home/rinne/code
@@ -9,7 +9,7 @@ all:
 clean:
 	docker rm -f $$(docker ps -aq)
 
-.PHONY: all
+.PHONY: deploy
 
 .PHONY: clean
 

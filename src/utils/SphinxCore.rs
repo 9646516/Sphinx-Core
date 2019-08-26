@@ -11,14 +11,13 @@ use std::string::String;
 pub enum CompileStatus {
     SUCCESS,
     FAILED,
-    TLE,
 }
+
 impl std::fmt::Display for CompileStatus {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             CompileStatus::SUCCESS => write!(fmt, "SUCCESS"),
             CompileStatus::FAILED => write!(fmt, "FAILED"),
-            CompileStatus::TLE => write!(fmt, "TLE"),
         }
     }
 }
@@ -27,8 +26,11 @@ pub struct CompileResult {
     pub status: CompileStatus,
     pub info: String,
 }
+
 use super::DockerUtils;
+
 const WORK_DIR: &str = "/home/rinne/code/";
+
 pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) -> Result<(), String> {
     let dir = format!("{}/{}", WORK_DIR, index);
     let pdir = Path::new(&dir);
@@ -57,22 +59,13 @@ pub fn Compiler(docker: &Docker, id: &str, code: &String, index: &u32) -> Compil
                 3000,
             );
             match res {
-                Ok(T) => {
-                    if !T.contains("error") {
-                        CompileResult {
-                            status: CompileStatus::SUCCESS,
-                            info: T,
-                        }
-                    } else {
-                        CompileResult {
-                            status: CompileStatus::FAILED,
-                            info: T,
-                        }
-                    }
-                }
+                Ok(T) => CompileResult {
+                    status: CompileStatus::SUCCESS,
+                    info: T,
+                },
                 Err(T) => CompileResult {
-                    status: CompileStatus::TLE,
-                    info: String::new(),
+                    status: CompileStatus::FAILED,
+                    info: T,
                 },
             }
         }
@@ -92,6 +85,7 @@ pub enum JudgeStatus {
     UNKNOWN_ERROR,
     COMPILE_ERROR,
 }
+
 impl std::fmt::Display for JudgeStatus {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -105,10 +99,12 @@ impl std::fmt::Display for JudgeStatus {
         }
     }
 }
+
 pub struct JudgeResult {
     pub status: JudgeStatus,
     pub info: String,
 }
+
 pub fn Judge(id: &str, index: &u32) -> JudgeResult {
     JudgeResult {
         status: JudgeStatus::ACCEPTED,

@@ -23,52 +23,32 @@ pub fn GetContainers(docker: &Docker) -> Vec<String> {
 }
 
 pub fn RunCmd(id: &str, cmd: String, ttl: u64) -> Result<String, String> {
-    let op = Instant::now();
-    let mut done = false;
-    let (sx, rx) = crossbeam_channel::bounded(1);
-    let mut ret = String::new();
-    crossbeam::thread::scope(|s| {
-        s.spawn(|_| {
-            let docker = Docker::connect_with_defaults().unwrap();
-            let mut buf: Vec<u8> = Vec::new();
-            let idx = docker
-                .exec_container(
-                    id,
-                    &CreateExecOptions::new()
-                        .tty(true)
-                        .cmd("sh".to_string())
-                        .cmd("-c".to_string())
-                        .cmd(cmd),
-                )
-                .unwrap()
-                .id;
-            docker
-                .start_exec(&idx, &StartExecOptions::new().tty(true))
-                .unwrap()
-                .unwrap()
-                .read_to_end(&mut buf)
-                .unwrap();
-            ret = String::from_utf8(buf).unwrap();
-            sx.send(()).unwrap();
-        });
-
-        s.spawn(|_| {
-            while Instant::now().duration_since(op) < Duration::from_millis(ttl) {
-                if rx.try_recv().is_ok() {
-                    done = true;
-                }
-            }
-            if !done {
-                let docker = Docker::connect_with_defaults().unwrap();
-                docker
-                    .restart_container(id, Duration::from_micros(0))
-                    .expect("Restart Failed");
-            }
-        });
-    })
-    .expect("Cmd Failed");
-    match done {
-        true => Ok(ret),
-        false => Err("Time Limit Error".to_string()),
+    let docker = Docker::connect_with_defaults().unwrap();
+    let mut buf: Vec<u8> = Vec::new();
+    //    println!("{}", format!("timeout {} {}", ttl as f32 / 1000.0, cmd));
+    let idx = docker
+        .exec_container(
+            id,
+            &CreateExecOptions::new()
+                .tty(true)
+                .cmd("sh".to_string())
+                .cmd("-c".to_string())
+                .cmd(format!("timeout {} {}", ttl as f32 / 1000.0, cmd)),
+        )
+        .unwrap()
+        .id;
+    docker
+        .start_exec(&idx, &StartExecOptions::new().tty(true))
+        .unwrap()
+        .unwrap()
+        .read_to_end(&mut buf)
+        .unwrap();
+    let status = docker.exec_inspect(&idx).unwrap().ExitCode.unwrap();
+    let info = String::from_utf8(buf).unwrap();
+    //    println!("{}\n{}", status, info);
+    match status {
+        0 => Ok(info),
+        124 => Err("Command Exec too Much Time".to_string()),
+        _ => Err(info),
     }
 }

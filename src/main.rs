@@ -13,11 +13,10 @@ fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
     let cpp = read_to_string("./test/1.cpp").unwrap();
     let idx = utils::DockerUtils::GetContainers(&docker);
-    let res = utils::SphinxCore::Compiler(&docker, &idx[0], &cpp, &1u32);
-    println!("{} {}", res.status, res.info);
-    println!("done");
+    //    let res = utils::SphinxCore::Compiler(&docker, &idx[0], &cpp, &1u32);
+    //    println!("{} {}", res.status, res.info);
     println!(
-        "{}",
-        utils::DockerUtils::RunCmd(&idx[0], "apt".to_string(), 1000u64).unwrap()
+        "{:?}",
+        utils::DockerUtils::RunCmd(&idx[0], "g++ --version".to_string(), 10000u64)
     );
 }
