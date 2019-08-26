@@ -14,8 +14,7 @@ pub fn GetContainers(docker: &Docker) -> Vec<String> {
     return ret;
 }
 
-pub fn RunCmd(id: &str, cmd: String) -> (u32, String) {
-    let docker = Docker::connect_with_defaults().unwrap();
+pub fn RunCmd(docker: &Docker, id: &str, cmd: String) -> (u32, String) {
     let mut buf: Vec<u8> = Vec::new();
     let idx = docker
         .exec_container(

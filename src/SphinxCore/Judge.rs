@@ -1,3 +1,4 @@
+use super::Utils::DockerUtils;
 use dockworker::Docker;
 use std::path::Path;
 
@@ -41,10 +42,11 @@ pub fn Run(
     InputDir: &Path,
     SpecialJudge: Option<&Path>,
 ) -> JudgeStatus {
-    if SpecialJudge.is_some() {
-        let Some(judge) = SpecialJudge;
-    } else {
-        let judge = Path::new(&NORMAL_JUDGE.to_string());
+    match SpecialJudge {
+        Some(judge) => {}
+        None => {
+            let judge = Path::new(&NORMAL_JUDGE.to_string());
+        }
     }
     JudgeStatus::ACCEPTED
 }
@@ -57,6 +59,7 @@ pub fn Judge(
     SpecialJudge: bool,
 ) -> JudgeResult {
     let str = format!("{}{}", DATA_DIR, DataUID);
+    let p = format!("{}/o", str);
     let path = Path::new(str.as_str());
     let mut test_case = Vec::new();
     for entry in path.read_dir().expect("read_dir call failed") {
@@ -68,6 +71,13 @@ pub fn Judge(
         }
     }
     let mut last = 0;
+    if SpecialJudge {
+        DockerUtils::RunCmd(
+            docker,
+            ContainerId,
+            format!("g++ {}/judge.cpp -o {}/o -O2", str, str),
+        );
+    }
     for i in &test_case {
         print!("{}", i);
         let status = Run(
@@ -76,7 +86,7 @@ pub fn Judge(
             SubmissionId,
             Path::new(&i),
             if SpecialJudge {
-                Some(Path::new(&format!("{}/o", str)))
+                Some(Path::new(&p))
             } else {
                 None
             },
