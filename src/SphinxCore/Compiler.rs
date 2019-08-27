@@ -3,7 +3,6 @@ use std::string::String;
 use dockworker::Docker;
 
 use super::Language::language;
-use super::SphinxCore::Env::*;
 use super::Utils::DockerUtils;
 
 #[derive(Eq, PartialEq)]

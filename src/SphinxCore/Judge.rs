@@ -54,12 +54,11 @@ pub fn Run(
     );
     //   println!("{}", cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
-    println!("{} {}", status, info);
+    //    println!("{} {}", status, info);
     let res = json::parse(&info).unwrap();
     let time = res["time_cost"].as_u32().unwrap();
     let mem = res["memory_cost"].as_u32().unwrap();
-    println!("{} {}", time, mem);
-
+    //    println!("{} {}", time, mem);
     if status == 0 {
         (
             match res["result"].as_str().unwrap() {

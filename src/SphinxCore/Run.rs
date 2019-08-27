@@ -5,7 +5,7 @@ use std::path::Path;
 
 use dockworker::Docker;
 
-use super::Compiler::{Compiler, CompileResult, CompileStatus};
+use super::Compiler::{CompileStatus, Compiler};
 use super::Env::*;
 use super::Judge::Judge;
 use super::Judge::JudgeResult;
