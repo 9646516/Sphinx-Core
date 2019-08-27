@@ -24,7 +24,7 @@ pub fn CopyFiles(
     if !pdir.exists() && fs::create_dir_all(pdir).is_err() {
         return Err(format!("make dir failed"));
     }
-    let file = File::create(format!("{}/{}/main.{}", WORK_DIR, index, lang.extension()));
+    let file = File::create(format!("{}/{}/Main.{}", WORK_DIR, index, lang.extension()));
     if file.is_err() {
         return Err("make file failed".to_string());
     }
@@ -47,6 +47,7 @@ pub fn Run(
         Ok(T) => {
             if lang.compile() {
                 let res = Compiler(docker, ContainerId, SubmissionId, lang.clone());
+                println!("{:?}", res);
                 if res.status == CompileStatus::FAILED {
                     JudgeResult {
                         status: JudgeStatus::COMPILE_ERROR,

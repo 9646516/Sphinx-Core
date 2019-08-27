@@ -52,7 +52,7 @@ pub fn Run(
         "/code/core {} {} {} {} {} {} {} {} {}",
         1000, 256_000_000, 64_000_000, 512_000_000, inputfile, temp, outputfile, run, checker
     );
-    //   println!("{}", cmd);
+    //    println!("{}", cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
     //    println!("{} {}", status, info);
     let res = json::parse(&info).unwrap();

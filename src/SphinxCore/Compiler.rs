@@ -5,21 +5,13 @@ use dockworker::Docker;
 use super::Language::language;
 use super::Utils::DockerUtils;
 
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum CompileStatus {
     SUCCESS,
     FAILED,
 }
 
-impl std::fmt::Display for CompileStatus {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            CompileStatus::SUCCESS => write!(fmt, "SUCCESS"),
-            CompileStatus::FAILED => write!(fmt, "FAILED"),
-        }
-    }
-}
-
+#[derive(Debug)]
 pub struct CompileResult {
     pub status: CompileStatus,
     pub info: String,
