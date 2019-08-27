@@ -26,6 +26,7 @@ pub fn Compiler(docker: &Docker, id: &str, index: &u32, lang: language) -> Compi
             lang.compile_command(format!("/code/{}", index))
         ),
     );
+    println!("{} {}", code, info);
     match code {
         0 => CompileResult {
             status: CompileStatus::SUCCESS,

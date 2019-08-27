@@ -47,7 +47,6 @@ pub fn Run(
         Ok(T) => {
             if lang.compile() {
                 let res = Compiler(docker, ContainerId, SubmissionId, lang.clone());
-                println!("{:?}", res);
                 if res.status == CompileStatus::FAILED {
                     JudgeResult {
                         status: JudgeStatus::COMPILE_ERROR,
