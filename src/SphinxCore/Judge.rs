@@ -1,40 +1,31 @@
+use std::cmp::max;
 use std::path::Path;
 
 use dockworker::Docker;
+use json;
 
-use crate::Utils::DockerUtils::RunCmd;
-
-use super::language::language;
+use super::Language::language;
 use super::SphinxCore::Env::*;
 use super::Utils::DockerUtils;
 
-#[derive(Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum JudgeStatus {
     ACCEPTED,
     WRONG_ANSWER,
     TIME_LIMITED_ERROR,
     RUNTIME_ERROR,
     MEMORY_LIMITED_ERROR,
-    UNKNOWN_ERROR,
+    OUTPUT_LIMITED_ERROR,
     COMPILE_ERROR,
+    UNKNOWN_ERROR,
 }
 
-impl std::fmt::Display for JudgeStatus {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            JudgeStatus::ACCEPTED => write!(fmt, "ACCEPTED"),
-            JudgeStatus::WRONG_ANSWER => write!(fmt, "WRONG_ANSWER"),
-            JudgeStatus::TIME_LIMITED_ERROR => write!(fmt, "TIME_LIMITED_ERROR"),
-            JudgeStatus::RUNTIME_ERROR => write!(fmt, "RUNTIME_ERROR"),
-            JudgeStatus::MEMORY_LIMITED_ERROR => write!(fmt, "MEMORY_LIMITED_ERROR"),
-            JudgeStatus::UNKNOWN_ERROR => write!(fmt, "UNKNOWN_ERROR"),
-            JudgeStatus::COMPILE_ERROR => write!(fmt, "COMPILE_ERROR"),
-        }
-    }
-}
-
+#[derive(Debug)]
 pub struct JudgeResult {
     pub status: JudgeStatus,
+    pub info: Option<String>,
+    pub time_cost: u32,
+    pub memory_cost: u32,
     pub last: u32,
 }
 
@@ -46,7 +37,7 @@ pub fn Run(
     prefix: &String,
     lang: language,
     SpecialJudge: Option<&str>,
-) -> JudgeStatus {
+) -> (JudgeStatus, u32, u32) {
     let checker = {
         match SpecialJudge {
             Some(judge) => judge,
@@ -62,9 +53,30 @@ pub fn Run(
         1000, 256_000_000, 64_000_000, 512_000_000, inputfile, temp, outputfile, run, checker
     );
     //   println!("{}", cmd);
-    let (status, info) = RunCmd(docker, ContainerId, cmd);
+    let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
     println!("{} {}", status, info);
-    JudgeStatus::ACCEPTED
+    let res = json::parse(&info).unwrap();
+    let time = res["time_cost"].as_u32().unwrap();
+    let mem = res["memory_cost"].as_u32().unwrap();
+    println!("{} {}", time, mem);
+
+    if status == 0 {
+        (
+            match res["result"].as_str().unwrap() {
+                "Runtime Error" => JudgeStatus::RUNTIME_ERROR,
+                "Time Limit Exceeded" => JudgeStatus::TIME_LIMITED_ERROR,
+                "Memory Limit Exceeded" => JudgeStatus::MEMORY_LIMITED_ERROR,
+                "Output Limit Exceeded" => JudgeStatus::OUTPUT_LIMITED_ERROR,
+                "Accepted" => JudgeStatus::ACCEPTED,
+                "Wrong Answer" => JudgeStatus::WRONG_ANSWER,
+                _ => JudgeStatus::UNKNOWN_ERROR,
+            },
+            time,
+            mem,
+        )
+    } else {
+        (JudgeStatus::UNKNOWN_ERROR, time, mem)
+    }
 }
 
 pub fn Judge(
@@ -93,12 +105,14 @@ pub fn Judge(
         DockerUtils::RunCmd(
             docker,
             ContainerId,
-            lang.compile_command(format!("/data/{}", DataUID))
+            lang.compile_command(format!("/data/{}", DataUID)),
         );
     }
     let p = format!("\"/data/{}/o\"", DataUID);
+    let mut time_cost = 0;
+    let mut memory_cost = 0;
     for i in &test_case {
-        let status = Run(
+        let (status, _t, _m) = Run(
             docker,
             ContainerId,
             SubmissionId,
@@ -107,14 +121,25 @@ pub fn Judge(
             lang.clone(),
             if SpecialJudge { Some(&p) } else { None },
         );
-        if status != JudgeStatus::ACCEPTED {
-            return JudgeResult { status, last };
-        } else {
+        if status == JudgeStatus::ACCEPTED {
+            time_cost = max(time_cost, _t);
+            memory_cost = max(memory_cost, _m);
             last += 1;
+        } else {
+            return JudgeResult {
+                status,
+                info: None,
+                time_cost,
+                memory_cost,
+                last,
+            };
         }
     }
     JudgeResult {
         status: JudgeStatus::ACCEPTED,
+        info: None,
+        time_cost,
+        memory_cost,
         last,
     }
 }

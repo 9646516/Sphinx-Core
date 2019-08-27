@@ -44,7 +44,7 @@ char *input_sourcefile, *output_sourcefile, *answer_sourcefile, *running_argumen
     } while (0)
 #define goodExit(msg, timecost, memorycost)                                                                                                              \
     do {                                                                                                                                                 \
-        fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": \"%lld\" , \"memory_cost\": \"%lld\" }\n", msg, (long long)timecost, (long long)memorycost); \
+        fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": %lld , \"memory_cost\": %lld }\n", msg, (long long)timecost, (long long)memorycost); \
         exit(0);                                                                                                                                         \
     } while (0)
 
