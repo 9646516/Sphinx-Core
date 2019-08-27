@@ -6,6 +6,7 @@ use std::string::String;
 
 use dockworker::Docker;
 
+use super::language::language;
 use super::SphinxCore::Env::*;
 use super::Utils::DockerUtils;
 
@@ -29,13 +30,13 @@ pub struct CompileResult {
     pub info: String,
 }
 
-pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) -> Result<(), String> {
+pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32, lang: language) -> Result<(), String> {
     let dir = format!("{}/{}", WORK_DIR, index);
     let pdir = Path::new(&dir);
     if !pdir.exists() && fs::create_dir_all(pdir).is_err() {
         return Err(format!("make dir failed"));
     }
-    let file = File::create(format!("{}/{}/main.cpp", WORK_DIR, index));
+    let file = File::create(format!("{}/{}/main.{}", WORK_DIR, index, lang.extension()));
     if file.is_err() {
         return Err("make file failed".to_string());
     }
@@ -45,15 +46,15 @@ pub fn CopyFiles(docker: &Docker, id: &str, code: &String, index: &u32) -> Resul
     }
 }
 
-pub fn Compiler(docker: &Docker, id: &str, code: &String, index: &u32) -> CompileResult {
-    match CopyFiles(&docker, id, code, index) {
+pub fn Compiler(docker: &Docker, id: &str, code: &String, index: &u32, lang: language) -> CompileResult {
+    match CopyFiles(&docker, id, code, index, lang.clone()) {
         Ok(T) => {
             let (code, info) = DockerUtils::RunCmd(
                 docker,
                 id,
                 format!(
-                    "timeout 3s g++ /code/{}/main.cpp -o /code/{}/o -O2 -Wall -std=c++17",
-                    index, index
+                    "timeout 3s {}",
+                    lang.compile_command(format!("/code/{}", index))
                 ),
             );
             match code {

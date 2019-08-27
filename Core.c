@@ -111,7 +111,9 @@ int main(int argc, char *argv[]) {
         if (status_code != 0)
             goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
         int checker_statuscode = system(checker_arguments);
+#ifdef RINNE
         printf("%s\n", checker_arguments);
+#endif
         if (checker_statuscode == 0)
             goodExit("Accepted", timecost / 1000, result.ru_maxrss);
         else if (checker_statuscode > 256)

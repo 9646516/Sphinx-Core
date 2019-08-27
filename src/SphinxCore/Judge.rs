@@ -4,6 +4,7 @@ use dockworker::Docker;
 
 use crate::Utils::DockerUtils::RunCmd;
 
+use super::language::language;
 use super::SphinxCore::Env::*;
 use super::Utils::DockerUtils;
 
@@ -43,6 +44,7 @@ pub fn Run(
     RunID: &u32,
     DataID: &str,
     prefix: &String,
+    lang: language,
     SpecialJudge: Option<&str>,
 ) -> JudgeStatus {
     let checker = {
@@ -54,12 +56,12 @@ pub fn Run(
     let inputfile = format!("\"/data/{}/{}.in\"", DataID, prefix);
     let outputfile = format!("\"/data/{}/{}.out\"", DataID, prefix);
     let temp = format!("\"/code/{}/res\"", RunID);
-    let run = format!("\"/code/{}/o\"", RunID);
+    let run = lang.running_command(format!("/code/{}", RunID));
     let cmd = format!(
         "/code/core {} {} {} {} {} {} {} {} {}",
         1000, 256_000_000, 64_000_000, 512_000_000, inputfile, temp, outputfile, run, checker
     );
-    println!("{}", cmd);
+    //   println!("{}", cmd);
     let (status, info) = RunCmd(docker, ContainerId, cmd);
     println!("{} {}", status, info);
     JudgeStatus::ACCEPTED
@@ -70,16 +72,15 @@ pub fn Judge(
     ContainerId: &str,
     SubmissionId: &u32,
     DataUID: &str,
+    lang: language,
     SpecialJudge: bool,
 ) -> JudgeResult {
     let str = format!("{}{}", DATA_DIR, DataUID);
     let path = Path::new(str.as_str());
     let mut test_case = Vec::new();
-    println!("{:?}", path);
     for entry in path.read_dir().expect("read_dir call failed") {
         if let Ok(entry) = entry {
             let buf = entry.path();
-            println!("{:?}", buf);
             let prefix = buf.file_name().unwrap().to_str().unwrap();
             let suffix = buf.extension();
             if suffix.is_some() && suffix.unwrap().to_str().unwrap() == "in" {
@@ -87,25 +88,23 @@ pub fn Judge(
             }
         }
     }
-    println!("OUT");
-
     let mut last = 0;
     if SpecialJudge {
         DockerUtils::RunCmd(
             docker,
             ContainerId,
-            format!("g++ /data/{}/judge.cpp -o /data/{}/o -O2", DataUID, DataUID),
+            lang.compile_command(format!("/data/{}", DataUID))
         );
     }
     let p = format!("\"/data/{}/o\"", DataUID);
     for i in &test_case {
-        println!("{}", i);
         let status = Run(
             docker,
             ContainerId,
             SubmissionId,
             &DataUID,
             i,
+            lang.clone(),
             if SpecialJudge { Some(&p) } else { None },
         );
         if status != JudgeStatus::ACCEPTED {

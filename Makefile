@@ -11,6 +11,9 @@ all:
 	docker start XJB
 	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall
 	g++ Jury.cpp -o /home/rinne/code/Jury -O2 -Wall -std=c++17
+	mkdir /home/rinne/data/a+b
+	echo "1 2" > /home/rinne/data/a+b/1.in
+	echo "3" > /home/rinne/data/a+b/1.out
 
 clean:
 	docker rm -f $$(docker ps -aq)
@@ -27,6 +30,9 @@ prepare:
 	docker start XJB
 	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall
 	g++ Jury.cpp -o /home/rinne/code/Jury -O2 -Wall -std=c++17
+	mkdir /home/rinne/data/a+b
+	echo "1 2" > /home/rinne/data/a+b/1.in
+	echo "3" > /home/rinne/data/a+b/1.out
 
 test:
 	mkdir /home/rinne/data/a+b

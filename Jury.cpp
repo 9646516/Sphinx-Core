@@ -1,12 +1,16 @@
 #include <bits/stdc++.h>
 using namespace std;
 int main(const int argc, const char **argv) {
+#ifdef RINNE
     cout << argc << endl;
     for (int i = 0; i < argc; i++) {
         cout << argv[i] << endl;
     }
+#endif
     if (argc != 4) {
+#ifdef RINNE
         cout << "GUALE" << endl;
+#endif
         return -1;
     }
     const char *input = argv[1];
