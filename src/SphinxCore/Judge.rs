@@ -124,7 +124,7 @@ pub fn Judge(
             let prefix = buf.file_name().unwrap().to_str().unwrap();
             let suffix = buf.extension();
             if suffix.is_some() && suffix.unwrap().to_str().unwrap() == "in" {
-                if entry.path().with_extension("out").exists(){
+                if entry.path().with_extension("out").exists() {
                     test_case.push(prefix.to_string().replace(".in", ""));
                 }
             }

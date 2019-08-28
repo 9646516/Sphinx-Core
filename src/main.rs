@@ -5,9 +5,11 @@
 use std::fs::read_to_string;
 
 use dockworker::Docker;
+
 use SphinxCore::Judge::JudgeOption;
 
 pub mod SphinxCore;
+pub mod Server;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
