@@ -11,6 +11,7 @@ use super::Judge::Judge;
 use super::Judge::JudgeResult;
 use super::Judge::JudgeStatus;
 use super::Language::language;
+use super::SphinxCore::Judge::JudgeOption;
 
 pub fn CopyFiles(
     docker: &Docker,
@@ -41,6 +42,7 @@ pub fn Run(
     DataUID: &str,
     lang: language,
     SpecialJudge: bool,
+    opt: &JudgeOption,
     code: &String,
 ) -> JudgeResult {
     match CopyFiles(docker, ContainerId, code, SubmissionId, lang.clone()) {
@@ -62,6 +64,7 @@ pub fn Run(
                         SubmissionId,
                         DataUID,
                         lang.clone(),
+                        opt,
                         SpecialJudge,
                     )
                 }
@@ -72,6 +75,7 @@ pub fn Run(
                     SubmissionId,
                     DataUID,
                     lang.clone(),
+                    opt,
                     SpecialJudge,
                 )
             }

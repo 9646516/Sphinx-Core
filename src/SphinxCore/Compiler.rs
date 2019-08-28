@@ -2,8 +2,8 @@ use std::string::String;
 
 use dockworker::Docker;
 
+use super::DockerUtils;
 use super::Language::language;
-use super::Utils::DockerUtils;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum CompileStatus {

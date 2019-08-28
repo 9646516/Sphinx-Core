@@ -4,9 +4,9 @@ use std::path::Path;
 use dockworker::Docker;
 use json;
 
+use super::DockerUtils;
 use super::Language::language;
 use super::SphinxCore::Env::*;
-use super::Utils::DockerUtils;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum JudgeStatus {
@@ -29,6 +29,33 @@ pub struct JudgeResult {
     pub last: u32,
 }
 
+#[derive(Debug)]
+pub struct JudgeOption {
+    pub time: u32,
+    pub mem: u32,
+    pub output: u32,
+    pub stack: u32,
+}
+
+impl JudgeOption {
+    pub fn new(time: u32, mem: u32) -> Self {
+        Self {
+            time,
+            mem,
+            output: 64_000_000,
+            stack: 512_000_000,
+        }
+    }
+    pub fn output(&mut self, output: u32) -> &mut Self {
+        self.output = output;
+        self
+    }
+    pub fn stack(&mut self, stack: u32) -> &mut Self {
+        self.stack = stack;
+        self
+    }
+}
+
 pub fn Run(
     docker: &Docker,
     ContainerId: &str,
@@ -36,6 +63,7 @@ pub fn Run(
     DataID: &str,
     prefix: &String,
     lang: language,
+    opt: &JudgeOption,
     SpecialJudge: Option<&str>,
 ) -> (JudgeStatus, u32, u32) {
     let checker = {
@@ -50,7 +78,7 @@ pub fn Run(
     let run = lang.running_command(format!("/code/{}", RunID));
     let cmd = format!(
         "/code/core {} {} {} {} {} {} {} {} {}",
-        1000, 256_000_000, 64_000_000, 512_000_000, inputfile, temp, outputfile, run, checker
+        opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, outputfile, run, checker
     );
     //    println!("{}", cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
@@ -84,6 +112,7 @@ pub fn Judge(
     SubmissionId: &u32,
     DataUID: &str,
     lang: language,
+    opt: &JudgeOption,
     SpecialJudge: bool,
 ) -> JudgeResult {
     let str = format!("{}{}", DATA_DIR, DataUID);
@@ -95,7 +124,9 @@ pub fn Judge(
             let prefix = buf.file_name().unwrap().to_str().unwrap();
             let suffix = buf.extension();
             if suffix.is_some() && suffix.unwrap().to_str().unwrap() == "in" {
-                test_case.push(prefix.to_string().replace(".in", ""));
+                if entry.path().with_extension("out").exists(){
+                    test_case.push(prefix.to_string().replace(".in", ""));
+                }
             }
         }
     }
@@ -118,6 +149,7 @@ pub fn Judge(
             &DataUID,
             i,
             lang.clone(),
+            opt,
             if SpecialJudge { Some(&p) } else { None },
         );
         if status == JudgeStatus::ACCEPTED {
