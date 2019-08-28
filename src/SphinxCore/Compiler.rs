@@ -17,14 +17,11 @@ pub struct CompileResult {
     pub info: String,
 }
 
-pub fn Compiler(docker: &Docker, id: &str, index: &u32, lang: language) -> CompileResult {
+pub fn Compiler(docker: &Docker, id: &str, source: String, lang: language) -> CompileResult {
     let (code, info) = DockerUtils::RunCmd(
         docker,
         id,
-        format!(
-            "timeout 3s {}",
-            lang.compile_command(format!("/code/{}", index))
-        ),
+        format!("timeout 3s {}", lang.compile_command(source)),
     );
     println!("{} {}", code, info);
     match code {

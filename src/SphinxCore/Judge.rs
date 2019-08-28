@@ -131,13 +131,6 @@ pub fn Judge(
         }
     }
     let mut last = 0;
-    if SpecialJudge {
-        DockerUtils::RunCmd(
-            docker,
-            ContainerId,
-            lang.compile_command(format!("/data/{}", DataUID)),
-        );
-    }
     let p = format!("\"/data/{}/o\"", DataUID);
     let mut time_cost = 0;
     let mut memory_cost = 0;

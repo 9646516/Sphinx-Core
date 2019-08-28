@@ -5,3 +5,5 @@ pub const CORE: &str = "/home/rinne/code/core";
 
 pub const RX_PORT: u16 = 1817;
 pub const SX_PORT: u16 = 1818;
+
+pub const DOCKER_SUM: usize = 1;

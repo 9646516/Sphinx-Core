@@ -1,11 +1,12 @@
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use std::net::UdpSocket;
 use std::path::Path;
 
 use dockworker::Docker;
 
-use super::Compiler::{Compiler, CompileStatus};
+use super::Compiler::{CompileStatus, Compiler};
 use super::Env::*;
 use super::Judge::Judge;
 use super::Judge::JudgeResult;
@@ -35,7 +36,9 @@ pub fn CopyFiles(
     }
 }
 
+/// TODO :Report Real Time Status to the remote host
 pub fn Run(
+    sx: &UdpSocket,
     docker: &Docker,
     ContainerId: &str,
     SubmissionId: &u32,
@@ -44,48 +47,45 @@ pub fn Run(
     SpecialJudge: bool,
     opt: &JudgeOption,
     code: &String,
-) -> JudgeResult {
+) {
     match CopyFiles(docker, ContainerId, code, SubmissionId, lang.clone()) {
         Ok(T) => {
             if lang.compile() {
-                let res = Compiler(docker, ContainerId, SubmissionId, lang.clone());
+                let res = Compiler(
+                    docker,
+                    ContainerId,
+                    format!("/code/{}", SubmissionId),
+                    lang.clone(),
+                );
                 if res.status == CompileStatus::FAILED {
-                    JudgeResult {
+                    let res = JudgeResult {
                         status: JudgeStatus::COMPILE_ERROR,
                         info: Some(res.info),
                         time_cost: 0,
                         memory_cost: 0,
                         last: 0,
-                    }
-                } else {
-                    Judge(
-                        docker,
-                        ContainerId,
-                        SubmissionId,
-                        DataUID,
-                        lang.clone(),
-                        opt,
-                        SpecialJudge,
-                    )
+                    };
+                    return;
                 }
-            } else {
-                Judge(
-                    docker,
-                    ContainerId,
-                    SubmissionId,
-                    DataUID,
-                    lang.clone(),
-                    opt,
-                    SpecialJudge,
-                )
             }
+            let res = Judge(
+                docker,
+                ContainerId,
+                SubmissionId,
+                DataUID,
+                lang.clone(),
+                opt,
+                SpecialJudge,
+            );
         }
-        Err(T) => JudgeResult {
-            status: JudgeStatus::COMPILE_ERROR,
-            info: Some(T),
-            time_cost: 0,
-            memory_cost: 0,
-            last: 0,
-        },
+        Err(T) => {
+            let res = JudgeResult {
+                status: JudgeStatus::COMPILE_ERROR,
+                info: Some(T),
+                time_cost: 0,
+                memory_cost: 0,
+                last: 0,
+            };
+        }
     }
 }
