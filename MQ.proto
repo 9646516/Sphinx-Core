@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package mq;
+
+service Mq {
+    rpc submit(submit_request) returns (submit_response);
+    rpc check(check_request) returns (check_response);
+}
+
+message submit_request {
+    string lang = 1;
+    string solution = 2;
+    uint32 time=3;
+    uint32 mem=4;
+    uint32 uid=5;
+}
+
+
+message submit_response {
+    bool res = 1;
+}
+
+
+message check_request {
+    uint32 uid = 1;
+}
+
+message check_response {
+    string status = 1;
+    uint32 time=2;
+    uint32 mem=3;
+    uint32 last=4;
+}
