@@ -18,23 +18,6 @@ pub enum JudgeStatus {
     OUTPUT_LIMITED_ERROR,
     COMPILE_ERROR,
     UNKNOWN_ERROR,
-    RUNNING,
-}
-
-impl JudgeStatus {
-    pub fn to_string(&self) -> String {
-        match *self {
-            JudgeStatus::UNKNOWN_ERROR => "UNKNOWN_ERROR".to_string(),
-            JudgeStatus::WRONG_ANSWER => "WRONG_ANSWER".to_string(),
-            JudgeStatus::TIME_LIMITED_ERROR => "TIME_LIMITED_ERROR".to_string(),
-            JudgeStatus::RUNTIME_ERROR => "RUNTIME_ERROR".to_string(),
-            JudgeStatus::MEMORY_LIMITED_ERROR => "MEMORY_LIMITED_ERROR".to_string(),
-            JudgeStatus::OUTPUT_LIMITED_ERROR => "OUTPUT_LIMITED_ERROR".to_string(),
-            JudgeStatus::COMPILE_ERROR => "COMPILE_ERROR".to_string(),
-            JudgeStatus::ACCEPTED => "ACCEPTED".to_string(),
-            JudgeStatus::RUNNING => "RUNNING".to_string(),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -44,18 +27,6 @@ pub struct JudgeResult {
     pub time_cost: u32,
     pub memory_cost: u32,
     pub last: u32,
-}
-
-impl JudgeResult {
-    pub fn new() -> Self {
-        Self {
-            status: JudgeStatus::RUNNING,
-            info: None,
-            time_cost: 0,
-            memory_cost: 0,
-            last: 0,
-        }
-    }
 }
 
 #[derive(Debug)]
