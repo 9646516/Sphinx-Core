@@ -35,9 +35,13 @@ core:
 	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall
 	g++ Jury.cpp -o /home/rinne/code/Jury -O2 -Wall -std=c++17
 
+test:
+	cargo test --release -- --nocapture
+
 .PHONY: run
 .PHONY: all
 .PHONY: image
 .PHONY: clean
 .PHONY: test
 .PHONY: core
+.PHONY: test

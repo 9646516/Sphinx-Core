@@ -1,18 +1,17 @@
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
-use std::net::UdpSocket;
 use std::path::Path;
+use std::process::Command;
 
 use dockworker::Docker;
 
 use super::Compiler::{CompileStatus, Compiler};
 use super::Env::*;
 use super::Judge::Judge;
-use super::Judge::JudgeResult;
-use super::Judge::JudgeStatus;
 use super::Language::language;
 use super::SphinxCore::Judge::JudgeOption;
+use super::Update::UpdateRealTimeInfo;
 
 pub fn CopyFiles(
     docker: &Docker,
@@ -36,56 +35,69 @@ pub fn CopyFiles(
     }
 }
 
-/// TODO :Report Real Time Status to the remote host
 pub fn Run(
-    sx: &UdpSocket,
-    docker: &Docker,
-    ContainerId: &str,
-    SubmissionId: &u32,
-    DataUID: &str,
+    uid: &u32,
+    problem: &str,
     lang: language,
     SpecialJudge: bool,
     opt: &JudgeOption,
     code: &String,
 ) {
-    match CopyFiles(docker, ContainerId, code, SubmissionId, lang.clone()) {
+    let docker = Docker::connect_with_defaults().unwrap();
+    let ContainerId = InitDocker();
+    match CopyFiles(&docker, &ContainerId, code, uid, lang.clone()) {
         Ok(T) => {
             if lang.compile() {
                 let res = Compiler(
-                    docker,
-                    ContainerId,
-                    format!("/code/{}", SubmissionId),
+                    &docker,
+                    &ContainerId,
+                    format!("/code/{}", uid),
                     lang.clone(),
                 );
                 if res.status == CompileStatus::FAILED {
-                    let res = JudgeResult {
-                        status: JudgeStatus::COMPILE_ERROR,
-                        info: Some(res.info),
-                        time_cost: 0,
-                        memory_cost: 0,
-                        last: 0,
-                    };
+                    UpdateRealTimeInfo("COMPILE ERROR", &0, &0, uid, &0, &res.info);
                     return;
                 }
             }
-            let res = Judge(
-                docker,
-                ContainerId,
-                SubmissionId,
-                DataUID,
+            Judge(
+                &docker,
+                &ContainerId,
+                uid,
+                problem,
                 lang.clone(),
                 opt,
                 SpecialJudge,
             );
         }
         Err(T) => {
-            let res = JudgeResult {
-                status: JudgeStatus::COMPILE_ERROR,
-                info: Some(T),
-                time_cost: 0,
-                memory_cost: 0,
-                last: 0,
-            };
+            UpdateRealTimeInfo("COMPILE ERROR", &0, &0, uid, &0, &T);
         }
     }
+    docker
+        .remove_container(&ContainerId, Some(false), Some(true), Some(false))
+        .unwrap();
+}
+
+fn InitDocker() -> String {
+    let output = Command::new("docker")
+        .arg("create")
+        .arg("--interactive")
+        .arg("-v")
+        .arg("/home/rinne/code:/code")
+        .arg("-v")
+        .arg("/home/rinne/data:/data")
+        .arg("--tty")
+        .arg("--cpu-quota")
+        .arg("100000")
+        .arg("--cpu-period")
+        .arg("100000")
+        .arg("--network")
+        .arg("none")
+        .arg("9646516/judge_ubuntu:latest")
+        .output()
+        .expect("create docker failed");
+
+    let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
+    println!("{:?}", stdout);
+    stdout.to_string()
 }

@@ -11,6 +11,19 @@ pub enum language {
 }
 
 impl language {
+    pub fn from(str: &str) -> language {
+        match str {
+            "GCC" => language::GCC,
+            "GNU" => language::GNU,
+            "CLANG" => language::CLANG,
+            "CLANGPP" => language::CLANGPP,
+            "JAVA" => language::JAVA,
+            "RUST" => language::RUST,
+            "PY2" => language::PY2,
+            "PY3" => language::PY3,
+            _ => panic!("lang err"),
+        }
+    }
     pub fn extension(&self) -> String {
         match self {
             language::GCC => "c".to_string(),

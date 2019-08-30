@@ -1,12 +1,11 @@
-use std::cmp::max;
 use std::path::Path;
 
 use dockworker::Docker;
-use json;
 
 use super::DockerUtils;
 use super::Language::language;
 use super::SphinxCore::Env::*;
+use super::Update::UpdateRealTimeInfo;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum JudgeStatus {
@@ -18,6 +17,21 @@ pub enum JudgeStatus {
     OUTPUT_LIMITED_ERROR,
     COMPILE_ERROR,
     UNKNOWN_ERROR,
+}
+
+impl JudgeStatus {
+    pub fn to_string(&self) -> &str {
+        match self {
+            JudgeStatus::ACCEPTED => "ACCEPTED",
+            JudgeStatus::WRONG_ANSWER => "WRONG ANSWER",
+            JudgeStatus::TIME_LIMITED_ERROR => "TIME LIMITED ERROR",
+            JudgeStatus::RUNTIME_ERROR => "RUNTIME ERROR",
+            JudgeStatus::MEMORY_LIMITED_ERROR => "MEMORY LIMITED ERROR",
+            JudgeStatus::OUTPUT_LIMITED_ERROR => "OUTPUT LIMITED ERROR",
+            JudgeStatus::COMPILE_ERROR => "COMPILE ERROR",
+            JudgeStatus::UNKNOWN_ERROR => "UNKNOWN ERROR",
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -45,6 +59,14 @@ impl JudgeOption {
             output: 64_000_000,
             stack: 512_000_000,
         }
+    }
+    pub fn time(&mut self, time: u32) -> &mut Self {
+        self.time = time;
+        self
+    }
+    pub fn mem(&mut self, mem: u32) -> &mut Self {
+        self.mem = mem;
+        self
     }
     pub fn output(&mut self, output: u32) -> &mut Self {
         self.output = output;
@@ -114,7 +136,7 @@ pub fn Judge(
     lang: language,
     opt: &JudgeOption,
     SpecialJudge: bool,
-) -> JudgeResult {
+) {
     let str = format!("{}{}", DATA_DIR, DataUID);
     let path = Path::new(str.as_str());
     let mut test_case = Vec::new();
@@ -132,8 +154,6 @@ pub fn Judge(
     }
     let mut last = 0;
     let p = format!("\"/data/{}/o\"", DataUID);
-    let mut time_cost = 0;
-    let mut memory_cost = 0;
     for i in &test_case {
         let (status, _t, _m) = Run(
             docker,
@@ -146,24 +166,11 @@ pub fn Judge(
             if SpecialJudge { Some(&p) } else { None },
         );
         if status == JudgeStatus::ACCEPTED {
-            time_cost = max(time_cost, _t);
-            memory_cost = max(memory_cost, _m);
+            UpdateRealTimeInfo("RUNNING", &_m, &_t, SubmissionId, &last, "");
             last += 1;
         } else {
-            return JudgeResult {
-                status,
-                info: None,
-                time_cost,
-                memory_cost,
-                last,
-            };
+            UpdateRealTimeInfo(status.to_string(), &_m, &_t, SubmissionId, &last, "");
+            break;
         }
-    }
-    JudgeResult {
-        status: JudgeStatus::ACCEPTED,
-        info: None,
-        time_cost,
-        memory_cost,
-        last,
     }
 }
