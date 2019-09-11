@@ -62,7 +62,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                 }
                 .to_string();
                 let headers = m.headers().unwrap();
-                assert_eq!(headers.count(), 5);
+                assert_eq!(headers.count(), 6);
                 let problem = String::from_utf8_lossy(headers.get(0).unwrap().1).to_string();
                 let time: u32 = String::from_utf8_lossy(headers.get(1).unwrap().1)
                     .to_string()
@@ -78,12 +78,10 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                     .to_string()
                     .parse()
                     .unwrap();
-                let spj: bool = String::from_utf8_lossy(headers.get(5).unwrap().1)
-                    .to_string()
-                    .parse()
-                    .unwrap();
+                let spj: String = String::from_utf8_lossy(headers.get(5).unwrap().1).to_string();
                 let opt = JudgeOption::new(time, mem);
-                SphinxCore::Run::Run(&uid, &problem, lang, spj, &opt, &payload);
+                println!("{}",payload);
+                SphinxCore::Run::Run(&uid, &problem, lang, &spj, &opt, &payload);
                 consumer.commit_message(&m, CommitMode::Async).unwrap();
             }
         };

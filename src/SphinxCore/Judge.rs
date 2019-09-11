@@ -81,8 +81,8 @@ impl JudgeOption {
 pub fn Run(
     docker: &Docker,
     ContainerId: &str,
-    RunID: &u32,
-    DataID: &str,
+    SubmissionID: &u32,
+    ProblemID: &str,
     prefix: &String,
     lang: language,
     opt: &JudgeOption,
@@ -94,21 +94,18 @@ pub fn Run(
             None => "\"/code/Jury\"",
         }
     };
-    let inputfile = format!("\"/data/{}/{}.in\"", DataID, prefix);
-    let outputfile = format!("\"/data/{}/{}.out\"", DataID, prefix);
-    let temp = format!("\"/code/{}/res\"", RunID);
-    let run = lang.running_command(format!("/code/{}", RunID));
+    let inputfile = format!("\"/data/{}/{}.in\"", ProblemID, prefix);
+    let outputfile = format!("\"/data/{}/{}.out\"", ProblemID, prefix);
+    let temp = format!("\"/code/{}/res\"", SubmissionID);
+    let run = lang.running_command(format!("/code/{}", SubmissionID));
     let cmd = format!(
         "/code/core {} {} {} {} {} {} {} {} {}",
         opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, outputfile, run, checker
     );
-    //    println!("{}", cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
-    //    println!("{} {}", status, info);
     let res = json::parse(&info).unwrap();
     let time = res["time_cost"].as_u32().unwrap();
     let mem = res["memory_cost"].as_u32().unwrap();
-    //    println!("{} {}", time, mem);
     if status == 0 {
         (
             match res["result"].as_str().unwrap() {
@@ -132,12 +129,12 @@ pub fn Judge(
     docker: &Docker,
     ContainerId: &str,
     SubmissionId: &u32,
-    DataUID: &str,
+    ProblemID: &str,
     lang: language,
     opt: &JudgeOption,
-    SpecialJudge: bool,
+    SpecialJudge: &str,
 ) {
-    let str = format!("{}{}", DATA_DIR, DataUID);
+    let str = format!("{}{}", DATA_DIR, ProblemID);
     let path = Path::new(str.as_str());
     let mut test_case = Vec::new();
     for entry in path.read_dir().expect("read_dir call failed") {
@@ -153,20 +150,23 @@ pub fn Judge(
         }
     }
     let mut last = 0;
-    let p = format!("\"/data/{}/o\"", DataUID);
     for i in &test_case {
         let (status, _t, _m) = Run(
             docker,
             ContainerId,
             SubmissionId,
-            &DataUID,
+            &ProblemID,
             i,
             lang.clone(),
             opt,
-            if SpecialJudge { Some(&p) } else { None },
+            if !SpecialJudge.is_empty() {
+                Some(SpecialJudge)
+            } else {
+                None
+            },
         );
         if status == JudgeStatus::ACCEPTED {
-            UpdateRealTimeInfo("RUNNING", &_m, &_t, SubmissionId, &last, "");
+            UpdateRealTimeInfo(if last == test_case.len() as u32 - 1 { "ACCEPTED" } else { "RUNNING" }, &_m, &_t, SubmissionId, &last, "");
             last += 1;
         } else {
             UpdateRealTimeInfo(status.to_string(), &_m, &_t, SubmissionId, &last, "");

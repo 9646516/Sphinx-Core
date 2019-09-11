@@ -1,26 +1,8 @@
-run:
-	cargo fmt
-	cargo run --release
-
 image:
 	docker build . --tag judge:1.0.0
 
 clean:
 	docker rm -f $$(docker ps -aq)
-
-all:
-	rm -rf /home/rinne/code
-	mkdir /home/rinne/code
-	rm -rf /home/rinne/data
-	mkdir /home/rinne/data
-	sudo chmod -R 777 /home/rinne/code
-	docker create --interactive -v /home/rinne/code:/code \
-	-v /home/rinne/data:/data --name XJB --tty --cpu-quota 100000 \
-	--cpu-period 100000 --network none judge:1.0.0
-	docker start XJB
-	make core
-	mkdir /home/rinne/data/a+b
-	make test
 
 test:
 	rm -rf /home/rinne/data/a+b
@@ -35,13 +17,44 @@ core:
 	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall
 	g++ Jury.cpp -o /home/rinne/code/Jury -O2 -Wall -std=c++17
 
-test:
+RunTest:
 	cargo test --release -- --nocapture
 
-.PHONY: run
-.PHONY: all
+RunZoo:
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/zookeeper-server-start.sh config/zookeeper.properties
+
+RunKafka:
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/kafka-server-start.sh config/server.properties
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic in
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic result
+
+StopZoo:
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/zookeeper-server-stop.sh
+
+list:
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/kafka-topics.sh --list --zookeeper localhost:2181
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic in
+	cd ~/桌面/kafka_2.12-2.3.0 && \
+	bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic result
+
+RunTest:
+	cargo test --release -- --nocapture
+
 .PHONY: image
 .PHONY: clean
 .PHONY: test
 .PHONY: core
-.PHONY: test
+.PHONY: RunTest
+.PHONY: RunZoo
+.PHONY: RunKafka
+.PHONY: StopZoo
+.PHONY: list
+.PHONY: RunTest
+

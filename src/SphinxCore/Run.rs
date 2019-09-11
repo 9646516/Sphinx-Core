@@ -16,61 +16,61 @@ use super::Update::UpdateRealTimeInfo;
 pub fn CopyFiles(
     docker: &Docker,
     id: &str,
-    code: &String,
+    Code: &String,
     index: &u32,
     lang: language,
 ) -> Result<(), String> {
-    let dir = format!("{}/{}", WORK_DIR, index);
+    let dir = format!("{}{}", WORK_DIR, index);
     let pdir = Path::new(&dir);
     if !pdir.exists() && fs::create_dir_all(pdir).is_err() {
         return Err(format!("make dir failed"));
     }
-    let file = File::create(format!("{}/{}/Main.{}", WORK_DIR, index, lang.extension()));
+    let file = File::create(format!("{}{}/Main.{}", WORK_DIR, index, lang.extension()));
     if file.is_err() {
         return Err("make file failed".to_string());
     }
-    match file.unwrap().write_all(code.as_bytes()) {
+    match file.unwrap().write_all(Code.as_bytes()) {
         Ok(T) => Ok(()),
         Err(T) => Err("write file failed".to_string()),
     }
 }
 
 pub fn Run(
-    uid: &u32,
-    problem: &str,
+    SubmissionID: &u32,
+    ProblemID: &str,
     lang: language,
-    SpecialJudge: bool,
-    opt: &JudgeOption,
-    code: &String,
+    SpecialJudge: &str,
+    JudgeOpt: &JudgeOption,
+    Code: &String,
 ) {
     let docker = Docker::connect_with_defaults().unwrap();
     let ContainerId = InitDocker();
-    match CopyFiles(&docker, &ContainerId, code, uid, lang.clone()) {
+    match CopyFiles(&docker, &ContainerId, Code, SubmissionID, lang.clone()) {
         Ok(T) => {
             if lang.compile() {
                 let res = Compiler(
                     &docker,
                     &ContainerId,
-                    format!("/code/{}", uid),
+                    format!("/code/{}", SubmissionID),
                     lang.clone(),
                 );
                 if res.status == CompileStatus::FAILED {
-                    UpdateRealTimeInfo("COMPILE ERROR", &0, &0, uid, &0, &res.info);
+                    UpdateRealTimeInfo("COMPILE ERROR", &0, &0, SubmissionID, &0, &res.info);
                     return;
                 }
             }
             Judge(
                 &docker,
                 &ContainerId,
-                uid,
-                problem,
+                SubmissionID,
+                ProblemID,
                 lang.clone(),
-                opt,
+                JudgeOpt,
                 SpecialJudge,
             );
         }
         Err(T) => {
-            UpdateRealTimeInfo("COMPILE ERROR", &0, &0, uid, &0, &T);
+            UpdateRealTimeInfo("COMPILE ERROR", &0, &0, SubmissionID, &0, &T);
         }
     }
     docker
@@ -98,6 +98,10 @@ fn InitDocker() -> String {
         .expect("create docker failed");
 
     let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
-    println!("{:?}", stdout);
+    Command::new("docker")
+        .arg("start")
+        .arg(stdout.to_string())
+        .status()
+        .unwrap();
     stdout.to_string()
 }

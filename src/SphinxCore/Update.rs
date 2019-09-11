@@ -1,12 +1,22 @@
 extern crate futures;
 extern crate rdkafka;
 
+use std::time::Instant;
+
 use futures::*;
 use rdkafka::config::*;
 use rdkafka::message::*;
 use rdkafka::producer::*;
 
-pub fn UpdateRealTimeInfo(status: &str, mem: &u32, time: &u32, uid: &u32, last: &u32, info: &str) {
+pub fn UpdateRealTimeInfo(
+    status: &str,
+    mem: &u32,
+    time: &u32,
+    SubmissionID: &u32,
+    last: &u32,
+    info: &str,
+) {
+    let op = Instant::now();
     let topic_name = "result";
     let brokers = "localhost:9092";
     let producer: FutureProducer = ClientConfig::new()
@@ -19,21 +29,23 @@ pub fn UpdateRealTimeInfo(status: &str, mem: &u32, time: &u32, uid: &u32, last: 
         .send(
             FutureRecord::to(topic_name)
                 .payload(status)
-                .key(&format!("2333"))
+                .key("")
                 .headers(
                     OwnedHeaders::new()
                         .add("mem", &format!("{}", mem))
                         .add("time", &format!("{}", time))
-                        .add("uid", &format!("{}", uid))
+                        .add("uid", &format!("{}", SubmissionID))
                         .add("last", &format!("{}", last))
                         .add("info", info),
                 ),
             0,
         )
         .map(move |delivery_status| {
-            println!("Delivery status for message 1 received");
             delivery_status
         });
-
     println!("Future completed. Result: {:?}", futures.wait());
+    println!(
+        "Elapsed {} secs",
+        Instant::now().duration_since(op).as_micros() as f64 / 1000f64
+    );
 }

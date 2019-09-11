@@ -1,18 +1,6 @@
 use std::io::Read;
 
-use dockworker::{container::ContainerFilters, CreateExecOptions, Docker, StartExecOptions};
-
-pub fn GetContainers(docker: &Docker) -> Vec<String> {
-    let filter = ContainerFilters::new();
-    let containers = docker
-        .list_containers(Some(true), None, None, filter)
-        .unwrap();
-    let mut ret = Vec::new();
-    for i in &containers {
-        ret.push(i.Id.clone());
-    }
-    return ret;
-}
+use dockworker::{CreateExecOptions, Docker, StartExecOptions};
 
 pub fn RunCmd(docker: &Docker, id: &str, cmd: String) -> (u32, String) {
     let mut buf: Vec<u8> = Vec::new();
