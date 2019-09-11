@@ -7,7 +7,7 @@ use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*, util::*};
 
 fn produce(brokers: &str, topic_name: &str) {
-    let cpp = read_to_string("./test/a+b/Main.rs").unwrap();
+    let cpp = read_to_string("./test/a+b/Main.java").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
         .set("produce.offset.report", "true")
@@ -24,7 +24,7 @@ fn produce(brokers: &str, topic_name: &str) {
                         .add("problem", "a+b")
                         .add("time", "1000")
                         .add("mem", "256000000")
-                        .add("lang", "RUST")
+                        .add("lang", "JAVA")
                         .add("uid", "1")
                         .add("spj", ""),
                 ),
@@ -61,9 +61,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
         .subscribe(&topics.to_vec())
         .expect("Can't subscribe to specified topics");
     let message_stream = consumer.start();
-    println!("WAITING");
     for message in message_stream.wait() {
-        println!("got one");
         match message {
             Err(_) => println!("Error while reading from stream."),
             Ok(Err(e)) => println!("Kafka error: {}", e),
@@ -92,14 +90,12 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 
 #[test]
 fn main() {
-    println!("gogogo");
     let (version_n, version_s) = get_rdkafka_version();
     println!("rd_kafka_version: 0x{:08x}, {}", version_n, version_s);
 
     let topic = "in";
     let brokers = "localhost:9092";
     produce(brokers, topic);
-    println!("SEND DONE");
 
     let topics = vec!["result"];
     let group_id = "Q2";
