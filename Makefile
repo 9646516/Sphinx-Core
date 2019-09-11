@@ -44,9 +44,6 @@ list:
 	cd ~/桌面/kafka_2.12-2.3.0 && \
 	bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic result
 
-RunTest:
-	cargo test --release -- --nocapture
-
 .PHONY: image
 .PHONY: clean
 .PHONY: test
@@ -56,5 +53,3 @@ RunTest:
 .PHONY: RunKafka
 .PHONY: StopZoo
 .PHONY: list
-.PHONY: RunTest
-

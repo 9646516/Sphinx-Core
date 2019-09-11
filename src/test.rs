@@ -4,12 +4,7 @@ extern crate rdkafka;
 use std::fs::read_to_string;
 
 use futures::*;
-use rdkafka::client::*;
-use rdkafka::config::*;
-use rdkafka::consumer::*;
-use rdkafka::message::*;
-use rdkafka::producer::*;
-use rdkafka::util::*;
+use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*, util::*};
 
 fn produce(brokers: &str, topic_name: &str) {
     let cpp = read_to_string("./test/a+b/Main.rs").unwrap();

@@ -6,11 +6,7 @@ extern crate rdkafka;
 extern crate rdkafka_sys;
 
 use futures::stream::*;
-use rdkafka::client::*;
-use rdkafka::config::*;
-use rdkafka::consumer::*;
-use rdkafka::message::*;
-use rdkafka::util::*;
+use rdkafka::{client::*, config::*, consumer::*, message::*};
 
 use crate::SphinxCore::Judge::JudgeOption;
 use crate::SphinxCore::Language::language;
@@ -28,7 +24,11 @@ impl ConsumerContext for CustomContext {}
 
 type LoggingConsumer = StreamConsumer<CustomContext>;
 
-fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
+fn main() {
+    let topics = vec!["in"];
+    let brokers = "localhost:9092";
+    let group_id = "Q";
+
     let context = CustomContext;
 
     let consumer: LoggingConsumer = ClientConfig::new()
@@ -80,21 +80,10 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                     .unwrap();
                 let spj: String = String::from_utf8_lossy(headers.get(5).unwrap().1).to_string();
                 let opt = JudgeOption::new(time, mem);
-                println!("{}",payload);
+                println!("{}", payload);
                 SphinxCore::Run::Run(&uid, &problem, lang, &spj, &opt, &payload);
                 consumer.commit_message(&m, CommitMode::Async).unwrap();
             }
         };
     }
-}
-
-fn main() {
-    let (version_n, version_s) = get_rdkafka_version();
-    println!("rd_kafka_version: 0x{:08x}, {}", version_n, version_s);
-
-    let topics = vec!["in"];
-    let brokers = "localhost:9092";
-    let group_id = "Q";
-
-    consume_and_print(brokers, group_id, &topics);
 }

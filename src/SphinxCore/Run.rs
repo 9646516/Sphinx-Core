@@ -96,7 +96,6 @@ fn InitDocker() -> String {
         .arg("9646516/judge_ubuntu:latest")
         .output()
         .expect("create docker failed");
-
     let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
     Command::new("docker")
         .arg("start")

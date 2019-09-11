@@ -166,7 +166,18 @@ pub fn Judge(
             },
         );
         if status == JudgeStatus::ACCEPTED {
-            UpdateRealTimeInfo(if last == test_case.len() as u32 - 1 { "ACCEPTED" } else { "RUNNING" }, &_m, &_t, SubmissionId, &last, "");
+            UpdateRealTimeInfo(
+                if last == test_case.len() as u32 - 1 {
+                    "ACCEPTED"
+                } else {
+                    "RUNNING"
+                },
+                &_m,
+                &_t,
+                SubmissionId,
+                &last,
+                "",
+            );
             last += 1;
         } else {
             UpdateRealTimeInfo(status.to_string(), &_m, &_t, SubmissionId, &last, "");
