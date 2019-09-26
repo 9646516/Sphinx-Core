@@ -80,7 +80,7 @@ impl language {
             language::GNU => format!("\"{}/o\"", p),
             language::CLANG => format!("\"{}/o\"", p),
             language::CLANGPP => format!("\"{}/o\"", p),
-            language::JAVA => format!("\"java -cp {} Main\"", p),
+            language::JAVA => format!("\"java -cp {} -Xms64m -Xmx128m Main\"", p),
             language::PY2 => format!("\"python {}/Main.py\"", p),
             language::PY3 => format!("\"python3 {}/Main.py\"", p),
             language::RUST => format!("\"{}/o\"", p),

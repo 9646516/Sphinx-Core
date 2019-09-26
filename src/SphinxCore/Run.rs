@@ -45,6 +45,7 @@ pub fn Run(
 ) {
     let docker = Docker::connect_with_defaults().unwrap();
     let ContainerId = InitDocker();
+    println!("copying...");
     match CopyFiles(&docker, &ContainerId, Code, SubmissionID, lang.clone()) {
         Ok(T) => {
             if lang.compile() {
@@ -59,6 +60,7 @@ pub fn Run(
                     return;
                 }
             }
+            println!("judging....");
             Judge(
                 &docker,
                 &ContainerId,
@@ -93,14 +95,16 @@ fn InitDocker() -> String {
         .arg("100000")
         .arg("--network")
         .arg("none")
-        .arg("9646516/judge_ubuntu:latest")
+        .arg("judge:1.0.0")
         .output()
         .expect("create docker failed");
     let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
+    println!("{}",stdout);
     Command::new("docker")
         .arg("start")
         .arg(stdout.to_string())
         .status()
         .unwrap();
+    println!("cmd ok");
     stdout.to_string()
 }
