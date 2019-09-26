@@ -6,7 +6,7 @@ use std::fs::read_to_string;
 use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
 
-fn produce(brokers: &str, topic_name: &str) {
+fn produce(brokers: &str, topic_name: &str, uid: i32) {
     let cpp = read_to_string("./test/a+b/Main.java").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
@@ -25,7 +25,7 @@ fn produce(brokers: &str, topic_name: &str) {
                         .add("time", "1000")
                         .add("mem", "256000000")
                         .add("lang", "JAVA")
-                        .add("uid", "1")
+                        .add("uid", &uid.to_string())
                         .add("spj", ""),
                 ),
             0,
@@ -84,7 +84,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                 }
                 consumer.commit_message(&m, CommitMode::Async).unwrap();
                 if payload != "RUNNING" {
-                    break;
+                    //  break;
                 }
             }
         };
@@ -95,8 +95,9 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 fn main() {
     let topic = "in";
     let brokers = "localhost:9092";
-    produce(brokers, topic);
-
+    for _i in 0..100 {
+        produce(brokers, topic, _i as i32);
+    }
     let topics = vec!["result"];
     let group_id = "Q2";
     let brokers = "localhost:9092";

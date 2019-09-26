@@ -36,17 +36,17 @@ pub fn CopyFiles(
 }
 
 pub fn Run(
-    SubmissionID: &u32,
-    ProblemID: &str,
+    SubmissionID: u32,
+    ProblemID: String,
     lang: language,
-    SpecialJudge: &str,
-    JudgeOpt: &JudgeOption,
-    Code: &String,
+    SpecialJudge: String,
+    JudgeOpt: JudgeOption,
+    Code: String,
 ) {
     let docker = Docker::connect_with_defaults().unwrap();
     let ContainerId = InitDocker();
     println!("copying...");
-    match CopyFiles(&docker, &ContainerId, Code, SubmissionID, lang.clone()) {
+    match CopyFiles(&docker, &ContainerId, &Code, &SubmissionID, lang.clone()) {
         Ok(T) => {
             if lang.compile() {
                 let res = Compiler(
@@ -56,7 +56,7 @@ pub fn Run(
                     lang.clone(),
                 );
                 if res.status == CompileStatus::FAILED {
-                    UpdateRealTimeInfo("COMPILE ERROR", &0, &0, SubmissionID, &0, &res.info);
+                    UpdateRealTimeInfo("COMPILE ERROR", &0, &0, &SubmissionID, &0, &res.info);
                     return;
                 }
             }
@@ -64,15 +64,15 @@ pub fn Run(
             Judge(
                 &docker,
                 &ContainerId,
-                SubmissionID,
-                ProblemID,
+                &SubmissionID,
+                &ProblemID,
                 lang.clone(),
-                JudgeOpt,
-                SpecialJudge,
+                &JudgeOpt,
+                &SpecialJudge,
             );
         }
         Err(T) => {
-            UpdateRealTimeInfo("COMPILE ERROR", &0, &0, SubmissionID, &0, &T);
+            UpdateRealTimeInfo("COMPILE ERROR", &0, &0, &SubmissionID, &0, &T);
         }
     }
     docker

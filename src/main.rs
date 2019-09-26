@@ -4,6 +4,9 @@
 extern crate futures;
 extern crate rdkafka;
 extern crate rdkafka_sys;
+use crossbeam;
+use std::sync::RwLock;
+use std::{thread, time};
 
 use futures::stream::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*};
@@ -28,7 +31,7 @@ fn main() {
     let topics = vec!["in"];
     let brokers = "localhost:9092";
     let group_id = "Q";
-
+    let sum = RwLock::new(1usize);
     let context = CustomContext;
 
     let consumer: LoggingConsumer = ClientConfig::new()
@@ -46,44 +49,56 @@ fn main() {
         .expect("Can't subscribe to specified topics");
 
     let message_stream = consumer.start();
-
-    for message in message_stream.wait() {
-        match message {
-            Err(_) => println!("Error while reading from stream."),
-            Ok(Err(e)) => println!("Kafka error: {}", e),
-            Ok(Ok(m)) => {
-                let payload = match m.payload_view::<str>() {
-                    None => "",
-                    Some(Ok(s)) => s,
-                    Some(Err(e)) => {
-                        println!("Error while deserializing message payload: {:?}", e);
-                        ""
+    crossbeam::thread::scope(|s| {
+        for message in message_stream.wait() {
+            match message {
+                Err(_) => println!("Error while reading from stream."),
+                Ok(Err(e)) => println!("Kafka error: {}", e),
+                Ok(Ok(m)) => {
+                    let payload = match m.payload_view::<str>() {
+                        None => "",
+                        Some(Ok(s)) => s,
+                        Some(Err(e)) => {
+                            println!("Error while deserializing message payload: {:?}", e);
+                            ""
+                        }
                     }
+                    .to_string();
+                    let headers = m.headers().unwrap();
+                    assert_eq!(headers.count(), 6);
+                    let problem = String::from_utf8_lossy(headers.get(0).unwrap().1).to_string();
+                    let time: u32 = String::from_utf8_lossy(headers.get(1).unwrap().1)
+                        .to_string()
+                        .parse()
+                        .unwrap();
+                    let mem: u32 = String::from_utf8_lossy(headers.get(2).unwrap().1)
+                        .to_string()
+                        .parse()
+                        .unwrap();
+                    let lang = language::from(
+                        &String::from_utf8_lossy(headers.get(3).unwrap().1).to_string(),
+                    );
+                    let uid: u32 = String::from_utf8_lossy(headers.get(4).unwrap().1)
+                        .to_string()
+                        .parse()
+                        .unwrap();
+                    let spj: String =
+                        String::from_utf8_lossy(headers.get(5).unwrap().1).to_string();
+                    let opt = JudgeOption::new(time, mem);
+                    println!("{}", payload);
+                    let ref_sum = &sum;
+                    s.spawn(move |_| {
+                        if *ref_sum.read().unwrap() > 10 {
+                            thread::sleep(time::Duration::from_millis(100));
+                        }
+                        *ref_sum.write().unwrap() += 1;
+                        SphinxCore::Run::Run(uid, problem, lang, spj, opt, payload);
+                        *ref_sum.write().unwrap() -= 1;
+                    });
+                    consumer.commit_message(&m, CommitMode::Async).unwrap();
                 }
-                .to_string();
-                let headers = m.headers().unwrap();
-                assert_eq!(headers.count(), 6);
-                let problem = String::from_utf8_lossy(headers.get(0).unwrap().1).to_string();
-                let time: u32 = String::from_utf8_lossy(headers.get(1).unwrap().1)
-                    .to_string()
-                    .parse()
-                    .unwrap();
-                let mem: u32 = String::from_utf8_lossy(headers.get(2).unwrap().1)
-                    .to_string()
-                    .parse()
-                    .unwrap();
-                let lang =
-                    language::from(&String::from_utf8_lossy(headers.get(3).unwrap().1).to_string());
-                let uid: u32 = String::from_utf8_lossy(headers.get(4).unwrap().1)
-                    .to_string()
-                    .parse()
-                    .unwrap();
-                let spj: String = String::from_utf8_lossy(headers.get(5).unwrap().1).to_string();
-                let opt = JudgeOption::new(time, mem);
-                println!("{}", payload);
-                SphinxCore::Run::Run(&uid, &problem, lang, &spj, &opt, &payload);
-                consumer.commit_message(&m, CommitMode::Async).unwrap();
-            }
-        };
-    }
+            };
+        }
+    })
+    .expect("crossbeam Failed");
 }

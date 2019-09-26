@@ -43,7 +43,7 @@ pub struct JudgeResult {
     pub last: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JudgeOption {
     pub time: u32,
     pub mem: u32,
