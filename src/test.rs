@@ -4,7 +4,7 @@ extern crate rdkafka;
 use std::fs::read_to_string;
 
 use futures::*;
-use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*, util::*};
+use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
 
 fn produce(brokers: &str, topic_name: &str) {
     let cpp = read_to_string("./test/a+b/Main.java").unwrap();
@@ -83,6 +83,9 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                     }
                 }
                 consumer.commit_message(&m, CommitMode::Async).unwrap();
+                if payload != "RUNNING" {
+                    break;
+                }
             }
         };
     }
@@ -90,9 +93,6 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 
 #[test]
 fn main() {
-    let (version_n, version_s) = get_rdkafka_version();
-    println!("rd_kafka_version: 0x{:08x}, {}", version_n, version_s);
-
     let topic = "in";
     let brokers = "localhost:9092";
     produce(brokers, topic);

@@ -43,7 +43,10 @@ pub fn UpdateRealTimeInfo(
             0,
         )
         .map(move |delivery_status| delivery_status);
-    println!("{} {} {} {} {} {}",status,mem,time,SubmissionID,last,info);
+    println!(
+        "{} {} {} {} {} {}",
+        status, mem, time, SubmissionID, last, info
+    );
     println!("Future completed. Result: {:?}", futures.wait());
     println!("Elapsed {} secs", op.elapsed().as_micros() as f64 / 1000f64);
 }

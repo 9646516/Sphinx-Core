@@ -102,11 +102,9 @@ pub fn Run(
         "/code/core {} {} {} {} {} {} {} {} {}",
         opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, outputfile, run, checker
     );
-    println!("{}",cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
-    println!("{}",info);
     let res = json::parse(&info).unwrap();
-    println!("{:?}",res);
+    println!("{}", res);
     let time = res["time_cost"].as_u32().unwrap();
     let mem = res["memory_cost"].as_u32().unwrap();
     if status == 0 {
@@ -152,7 +150,8 @@ pub fn Judge(
             }
         }
     }
-    println!("{:?}",test_case);
+    test_case.sort();
+    println!("{:?}", test_case);
     let mut last = 0;
     for i in &test_case {
         let (status, _t, _m) = Run(

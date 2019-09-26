@@ -17,7 +17,7 @@ test:
 	echo "300" > /home/rinne/data/a+b/3.out
 
 core:
-	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall 
+	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall
 	g++ Jury.cpp -o /home/rinne/code/Jury -O2 -Wall -std=c++17
 
 RunTest:

@@ -30,35 +30,28 @@
  * Debug:
     printf( "%d %d %s %ld\n" , WEXITSTATUS(status) , status_code , strsignal( status_code ) , result.ru_maxrss );
  *****************************************************************************/
-long long timelimit, memorylimit, outputlimit, stacklimit;
+long long timelimit;
 int Exceeded_wall_clock_time;
 char checker_arguments[666];
+const int judge_user = 6666;
 __pid_t pid;
-char *input_sourcefile, *output_sourcefile, *answer_sourcefile, *running_arguments, *checker_sourcefile;
 
-#define judge_user 6666
-#define errExit(msg)                                                                                 \
-    do {                                                                                             \
-        fprintf(stdout, "{\"result\":\"%s\", \"additional_info\": \"%s\" }\n", "Judger Error", msg); \
-        exit(-1);                                                                                    \
-    } while (0)
-#define goodExit(msg, timecost, memorycost)                                                                                                              \
-    do {                                                                                                                                                 \
-        fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": %lld , \"memory_cost\": %lld }\n", msg, (long long)timecost, (long long)memorycost); \
-        exit(0);                                                                                                                                         \
-    } while (0)
+void errExit(char *msg) {
+    fprintf(stdout, "{\"result\":\"%s\", \"additional_info\": \"%s\" }\n", "Judger Error", msg);
+    exit(-1);
+}
 
-#define set_limit(type, value, ext)     \
-    do {                                \
-        struct rlimit _;                \
-        _.rlim_cur = (value);           \
-        _.rlim_max = value + ext;       \
-        if (setrlimit(type, &_) != 0)   \
-            errExit("Setrlimit error"); \
-    } while (0)
+void goodExit(char *msg, long long timecost, long long memorycost) {
+    fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": %lld , \"memory_cost\": %lld }\n",msg, timecost, memorycost);
+    exit(0);
+}
 
-void genrate_checker_command() {
-    sprintf(checker_arguments, "%s %s %s %s", checker_sourcefile, input_sourcefile, output_sourcefile, answer_sourcefile);
+void set_limit(int type, int value, int ext) {
+    struct rlimit _;
+    _.rlim_cur = (value);
+    _.rlim_max = value + ext;
+    if (setrlimit(type, &_) != 0)
+        errExit("Setrlimit error");
 }
 
 void wait_to_kill_childprocess() {
@@ -77,41 +70,38 @@ int main(int argc, char *argv[]) {
     if (argc != 10)
         errExit("Arguments number should be 9");
     timelimit = atoll(argv[1]);
-    memorylimit = atoll(argv[2]);
-    outputlimit = atoll(argv[3]);
-    stacklimit = atoll(argv[4]);
-    input_sourcefile = argv[5];
-    output_sourcefile = argv[6];
-    answer_sourcefile = argv[7];
-    running_arguments = argv[8];
-    checker_sourcefile = argv[9];
-    genrate_checker_command();
-#ifdef RINNE
-    printf("%s\n", checker_arguments);
-#endif
+    long long memorylimit = atoll(argv[2]);
+    long long outputlimit = atoll(argv[3]);
+    long long stacklimit = atoll(argv[4]);
+    char *input_sourcefile = argv[5];
+    char *output_sourcefile = argv[6];
+    char *answer_sourcefile = argv[7];
+    char *running_arguments = argv[8];
+    char *checker_sourcefile = argv[9];
+    sprintf(checker_arguments, "%s %s %s %s", checker_sourcefile, input_sourcefile, output_sourcefile, answer_sourcefile);
     if (freopen("/dev/null", "w", stderr) == NULL)
         errExit("Can not redirect stderr");
     pid = fork();
     if (pid > 0) {
-        struct rusage result;
-        int status;
         pthread_t watch_thread;
         if (pthread_create(&watch_thread, NULL, (void *)wait_to_kill_childprocess, NULL))
             errExit("Can not create watch pthread");
+        int status;
+        struct rusage result;
         wait4(pid, &status, 0, &result);
         int status_code = get_status_code(WEXITSTATUS(status));
         if (status_code == -1)
             errExit("Unknown Error");
-        if (status_code == 127)
+        else if (status_code == 127)
             errExit("Can not run target program( command not found )");
-        long long timecost = (long long)result.ru_utime.tv_sec * 1000000ll + (long long)result.ru_utime.tv_usec;
-        if (status_code == SIGXCPU || timecost > 1ll * timelimit * 1000 || Exceeded_wall_clock_time)
+        long long timecost = (long long)result.ru_utime.tv_sec * 1000000LL + (long long)result.ru_utime.tv_usec;
+        if (status_code == SIGXCPU || timecost > timelimit * 1000LL || Exceeded_wall_clock_time)
             goodExit("Time Limit Exceeded", timelimit, result.ru_maxrss);
-        if (status_code == SIGXFSZ)
+        else if (status_code == SIGXFSZ)
             goodExit("Output Limit Exceeded", timecost / 1000, result.ru_maxrss);
-        if (result.ru_maxrss * 1024 > memorylimit || status_code == SIGIOT)
+        else if (result.ru_maxrss * 1024 > memorylimit || status_code == SIGIOT)
             goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit / 1024);
-        if (status_code != 0)
+        else if (status_code != 0)
             goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
         int checker_statuscode = system(checker_arguments);
         if (checker_statuscode == 0)
@@ -122,15 +112,17 @@ int main(int argc, char *argv[]) {
     } else if (pid == 0) {
         if (freopen(input_sourcefile, "r", stdin) == NULL)
             errExit("Can not redirect stdin");
-        if (freopen(output_sourcefile, "w", stdout) == NULL)
+        else if (freopen(output_sourcefile, "w", stdout) == NULL)
             errExit("Can not redirect stdout");
-        if (setuid(judge_user))
+        else if (setuid(judge_user))
             errExit("Can not set uid");
-        set_limit(RLIMIT_CPU, (timelimit + 999) / 1000, 1); // set cpu_time limit
-        set_limit(RLIMIT_DATA, memorylimit, 0);             // set memory limit, extra memory : 1mb
-        set_limit(RLIMIT_FSIZE, outputlimit, 0);            // set output limit
-        set_limit(RLIMIT_STACK, stacklimit, 0);             // set stack limit
-        execl("/bin/sh", "sh", "-c", running_arguments, (char *)0);
+        else{
+            set_limit(RLIMIT_CPU, (timelimit + 999) / 1000, 1);
+            set_limit(RLIMIT_DATA, memorylimit, 0);
+            set_limit(RLIMIT_FSIZE, outputlimit, 0);
+            set_limit(RLIMIT_STACK, stacklimit, 0);
+            execl("/bin/sh", "sh", "-c", running_arguments, (char *)0);
+        }
     } else
         errExit("Can not fork the child process");
     return 0;
