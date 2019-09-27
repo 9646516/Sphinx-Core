@@ -81,36 +81,25 @@ impl JudgeOption {
 pub fn Run(
     docker: &Docker,
     ContainerId: &str,
-    SubmissionID: &u32,
-    ProblemID: &str,
     prefix: &String,
     lang: language,
     opt: &JudgeOption,
-    SpecialJudge: Option<&str>,
-    interactive: Option<&str>,
+    Judger: &str,
+    JudgeType: &u8,
 ) -> (JudgeStatus, u32, u32) {
-    let cmd = if interactive.is_none() {
-        let checker = {
-            match SpecialJudge {
-                Some(judge) => judge,
-                None => "\"/code/Jury\"",
-            }
-        };
-        let inputfile = format!("\"/data/{}/{}.in\"", ProblemID, prefix);
-        let outputfile = format!("\"/data/{}/{}.out\"", ProblemID, prefix);
-        let temp = format!("\"/code/{}/res\"", SubmissionID);
-        let run = lang.running_command(format!("/code/{}", SubmissionID));
+    let run = lang.running_command("/tmp");
+    let temp = format!("\"/tmp/res\"");
+    let checker = format!("\"/tmp/{}\"", Judger);
+    let inputfile = format!("\"/data/{}.in\"", prefix);
+    let cmd = if JudgeType != 2 {
+        let outputfile = format!("\"/data/{}.out\"", prefix);
         format!(
-            "/code/core {} {} {} {} {} {} {} {} {}",
+            "/tmp/core {} {} {} {} {} {} {} {} {}",
             opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, outputfile, run, checker
         )
     } else {
-        let checker = interactive.unwrap();
-        let inputfile = format!("\"/data/{}/{}.in\"", ProblemID, prefix);
-        let temp = format!("\"/code/{}/res\"", SubmissionID);
-        let run = lang.running_command(format!("/code/{}", SubmissionID));
         format!(
-            "/code/core2 {} {} {} {} {} {} {} {}",
+            "/tmp/core2 {} {} {} {} {} {} {} {}",
             opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, run, checker
         )
     };
@@ -145,10 +134,10 @@ pub fn Judge(
     ProblemID: &str,
     lang: language,
     opt: &JudgeOption,
-    SpecialJudge: &str,
-    interactive: &str,
+    Judger: &str,
+    JudgeType: &u8,
 ) {
-    let str = format!("{}{}", DATA_DIR, ProblemID);
+    let str = format!("{}/{}", DATA_DIR, ProblemID);
     let path = Path::new(str.as_str());
     let mut test_case = Vec::new();
     for entry in path.read_dir().expect("read_dir call failed") {
@@ -157,7 +146,7 @@ pub fn Judge(
             let prefix = buf.file_name().unwrap().to_str().unwrap();
             let suffix = buf.extension();
             if suffix.is_some() && suffix.unwrap().to_str().unwrap() == "in" {
-                if entry.path().with_extension("out").exists() {
+                if JudgeType == 2 || entry.path().with_extension("out").exists() {
                     test_case.push(prefix.to_string().replace(".in", ""));
                 }
             }
@@ -167,25 +156,7 @@ pub fn Judge(
     println!("{:?}", test_case);
     let mut last = 0;
     for i in &test_case {
-        let (status, _t, _m) = Run(
-            docker,
-            ContainerId,
-            SubmissionId,
-            &ProblemID,
-            i,
-            lang.clone(),
-            opt,
-            if !SpecialJudge.is_empty() {
-                Some(SpecialJudge)
-            } else {
-                None
-            },
-            if !interactive.is_empty() {
-                Some(interactive)
-            } else {
-                None
-            },
-        );
+        let (status, _t, _m) = Run(docker, ContainerId, i, lang.clone(), opt, Judger, JudgeType);
         if status == JudgeStatus::ACCEPTED {
             UpdateRealTimeInfo(
                 if last == test_case.len() as u32 - 1 {

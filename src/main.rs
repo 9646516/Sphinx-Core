@@ -4,6 +4,7 @@
 extern crate futures;
 extern crate rdkafka;
 extern crate rdkafka_sys;
+extern crate tar;
 use crossbeam;
 use std::sync::RwLock;
 use std::{thread, time};
@@ -82,10 +83,13 @@ fn main() {
                         .to_string()
                         .parse()
                         .unwrap();
-                    let spj: String =
-                        String::from_utf8_lossy(headers.get(5).unwrap().1).to_string();
 
-                    let interactive: String =
+                    let JudgeType: u8 = String::from_utf8_lossy(headers.get(5).unwrap().1)
+                        .to_string()
+                        .parse()
+                        .unwrap();
+
+                    let judge: String =
                         String::from_utf8_lossy(headers.get(6).unwrap().1).to_string();
 
                     let opt = JudgeOption::new(time, mem);
@@ -96,7 +100,7 @@ fn main() {
                             thread::sleep(time::Duration::from_millis(100));
                         }
                         *ref_sum.write().unwrap() += 1;
-                        SphinxCore::Run::Run(uid, problem, lang, spj, opt, payload, interactive);
+                        SphinxCore::Run::Run(uid, problem, lang, judge, opt, payload, JudgeType);
                         *ref_sum.write().unwrap() -= 1;
                     });
                     consumer.commit_message(&m, CommitMode::Async).unwrap();

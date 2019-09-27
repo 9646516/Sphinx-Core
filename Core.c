@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
+#include <bits/signum-generic.h>
 /*****************************************************************************
  * Run programs on Linux with resource limited.
  * Based on setrlimit.(https://linux.die.net/man/2/setrlimit)
@@ -36,17 +36,20 @@ char checker_arguments[666];
 const int judge_user = 6666;
 __pid_t pid;
 
-void errExit(char *msg) {
+void errExit(char *msg)
+{
     fprintf(stdout, "{\"result\":\"%s\", \"additional_info\": \"%s\" }\n", "Judger Error", msg);
     exit(-1);
 }
 
-void goodExit(char *msg, long long timecost, long long memorycost) {
-    fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": %lld , \"memory_cost\": %lld }\n",msg, timecost, memorycost);
+void goodExit(char *msg, long long timecost, long long memorycost)
+{
+    fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": %lld , \"memory_cost\": %lld }\n", msg, timecost, memorycost);
     exit(0);
 }
 
-void set_limit(int type, int value, int ext) {
+void set_limit(int type, int value, int ext)
+{
     struct rlimit _;
     _.rlim_cur = (value);
     _.rlim_max = value + ext;
@@ -54,19 +57,22 @@ void set_limit(int type, int value, int ext) {
         errExit("Setrlimit error");
 }
 
-void wait_to_kill_childprocess() {
+void wait_to_kill_childprocess()
+{
     sleep(((timelimit + 999) / 1000) << 1);
     kill(pid, 9);
     Exceeded_wall_clock_time = 1;
 }
 
-int get_status_code(int x) {
+int get_status_code(int x)
+{
     if (x > 128)
         x -= 128;
     return x;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     if (argc != 10)
         errExit("Arguments number should be 9");
     timelimit = atoll(argv[1]);
@@ -82,7 +88,8 @@ int main(int argc, char *argv[]) {
     if (freopen("/dev/null", "w", stderr) == NULL)
         errExit("Can not redirect stderr");
     pid = fork();
-    if (pid > 0) {
+    if (pid > 0)
+    {
         pthread_t watch_thread;
         if (pthread_create(&watch_thread, NULL, (void *)wait_to_kill_childprocess, NULL))
             errExit("Can not create watch pthread");
@@ -109,21 +116,25 @@ int main(int argc, char *argv[]) {
         else if (checker_statuscode > 256)
             errExit("Checker error");
         goodExit("Wrong Answer", timecost / 1000, result.ru_maxrss);
-    } else if (pid == 0) {
+    }
+    else if (pid == 0)
+    {
         if (freopen(input_sourcefile, "r", stdin) == NULL)
             errExit("Can not redirect stdin");
         else if (freopen(output_sourcefile, "w", stdout) == NULL)
             errExit("Can not redirect stdout");
         else if (setuid(judge_user))
             errExit("Can not set uid");
-        else{
+        else
+        {
             set_limit(RLIMIT_CPU, (timelimit + 999) / 1000, 1);
             set_limit(RLIMIT_DATA, memorylimit, 0);
             set_limit(RLIMIT_FSIZE, outputlimit, 0);
             set_limit(RLIMIT_STACK, stacklimit, 0);
             execl("/bin/sh", "sh", "-c", running_arguments, (char *)0);
         }
-    } else
+    }
+    else
         errExit("Can not fork the child process");
     return 0;
 }

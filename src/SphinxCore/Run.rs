@@ -6,26 +6,29 @@ use std::process::Command;
 
 use dockworker::Docker;
 
+use super::tar;
+
 use super::Compiler::{CompileStatus, Compiler};
 use super::Env::*;
 use super::Judge::Judge;
 use super::Language::language;
 use super::SphinxCore::Judge::JudgeOption;
 use super::Update::UpdateRealTimeInfo;
-
 pub fn CopyFiles(
     docker: &Docker,
-    id: &str,
+    uid: &u32,
+    ContainerId: &str,
     Code: &String,
-    index: &u32,
+    judger: &str,
     lang: language,
+    JudgeType: &u8,
 ) -> Result<(), String> {
-    let dir = format!("{}{}", WORK_DIR, index);
-    let pdir = Path::new(&dir);
+    let pdir = Path::new(&WORK_DIR);
     if !pdir.exists() && fs::create_dir_all(pdir).is_err() {
         return Err(format!("make dir failed"));
     }
-    let file = File::create(format!("{}{}/Main.{}", WORK_DIR, index, lang.extension()));
+    let code_path = format!("{}/{}/Main.{}", WORK_DIR, uid, lang.extension());
+    let file = File::create(code_path);
     if file.is_err() {
         return Err("make file failed".to_string());
     }
@@ -33,27 +36,45 @@ pub fn CopyFiles(
         Ok(T) => Ok(()),
         Err(T) => Err("write file failed".to_string()),
     }
+    let file = File::create(format!("{}/{}/foo.tar", WORK_DIR, uid)).unwrap();
+    let mut a = Builder::new(file);
+    a.append_path(code_path).unwrap();
+    a.append_path(format!("{}/{}", JUDGE_DIR, judger)).unwrap();
+    if JudgeType != 2 {
+        a.append_path(CORE1).unwrap();
+    } else {
+        a.append_path(CORE2).unwrap();
+    }
+    docker.put_file(ContainerId, file, "/tmp", true).unwrap();
 }
 
 pub fn Run(
     SubmissionID: u32,
     ProblemID: String,
     lang: language,
-    SpecialJudge: String,
+    Judger: String,
     JudgeOpt: JudgeOption,
     Code: String,
-    interactive: String,
+    JudgeType: u8,
 ) {
     let docker = Docker::connect_with_defaults().unwrap();
-    let ContainerId = InitDocker(&docker);
+    let ContainerId = InitDocker(&docker, &ProblemID);
     println!("copying...");
-    match CopyFiles(&docker, &ContainerId, &Code, &SubmissionID, lang.clone()) {
+    match CopyFiles(
+        &docker,
+        &uid,
+        &ContainerId,
+        &Code,
+        &Judger,
+        lang.clone(),
+        &JudgeType,
+    ) {
         Ok(T) => {
             if lang.compile() {
                 let res = Compiler(
                     &docker,
                     &ContainerId,
-                    format!("/code/{}", SubmissionID),
+                    format!("/tmp", SubmissionID),
                     lang.clone(),
                 );
                 if res.status == CompileStatus::FAILED {
@@ -69,8 +90,8 @@ pub fn Run(
                 &ProblemID,
                 lang.clone(),
                 &JudgeOpt,
-                &SpecialJudge,
-                &interactive,
+                &Judger,
+                &JudgeType,
             );
         }
         Err(T) => {
@@ -82,14 +103,12 @@ pub fn Run(
         .unwrap();
 }
 
-fn InitDocker(docker: &Docker) -> String {
+fn InitDocker(docker: &Docker, ProblemID: &str) -> String {
     let output = Command::new("docker")
         .arg("create")
         .arg("--interactive")
         .arg("-v")
-        .arg("/home/rinne/code:/code")
-        .arg("-v")
-        .arg("/home/rinne/data:/data")
+        .arg(format!("/home/rinne/data/{}:/data", SubmissionID))
         .arg("--tty")
         .arg("--cpu-quota")
         .arg("100000")
