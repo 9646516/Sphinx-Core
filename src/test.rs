@@ -26,7 +26,8 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
                         .add("mem", "256000000")
                         .add("lang", "JAVA")
                         .add("uid", &uid.to_string())
-                        .add("spj", ""),
+                        .add("spj", "")
+                        .add("interactive", ""),
                 ),
             0,
         )
@@ -95,7 +96,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 fn main() {
     let topic = "in";
     let brokers = "localhost:9092";
-    for _i in 0..10 {
+    for _i in 0..100 {
         produce(brokers, topic, _i as i32);
     }
     let topics = vec!["result"];

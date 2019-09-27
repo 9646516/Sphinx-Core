@@ -87,21 +87,33 @@ pub fn Run(
     lang: language,
     opt: &JudgeOption,
     SpecialJudge: Option<&str>,
+    interactive: Option<&str>,
 ) -> (JudgeStatus, u32, u32) {
-    let checker = {
-        match SpecialJudge {
-            Some(judge) => judge,
-            None => "\"/code/Jury\"",
-        }
+    let cmd = if interactive.is_none() {
+        let checker = {
+            match SpecialJudge {
+                Some(judge) => judge,
+                None => "\"/code/Jury\"",
+            }
+        };
+        let inputfile = format!("\"/data/{}/{}.in\"", ProblemID, prefix);
+        let outputfile = format!("\"/data/{}/{}.out\"", ProblemID, prefix);
+        let temp = format!("\"/code/{}/res\"", SubmissionID);
+        let run = lang.running_command(format!("/code/{}", SubmissionID));
+        format!(
+            "/code/core {} {} {} {} {} {} {} {} {}",
+            opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, outputfile, run, checker
+        )
+    } else {
+        let checker = interactive.unwrap();
+        let inputfile = format!("\"/data/{}/{}.in\"", ProblemID, prefix);
+        let temp = format!("\"/code/{}/res\"", SubmissionID);
+        let run = lang.running_command(format!("/code/{}", SubmissionID));
+        format!(
+            "/code/core2 {} {} {} {} {} {} {} {}",
+            opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, run, checker
+        )
     };
-    let inputfile = format!("\"/data/{}/{}.in\"", ProblemID, prefix);
-    let outputfile = format!("\"/data/{}/{}.out\"", ProblemID, prefix);
-    let temp = format!("\"/code/{}/res\"", SubmissionID);
-    let run = lang.running_command(format!("/code/{}", SubmissionID));
-    let cmd = format!(
-        "/code/core {} {} {} {} {} {} {} {} {}",
-        opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, outputfile, run, checker
-    );
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
     let res = json::parse(&info).unwrap();
     println!("{}", res);
@@ -134,6 +146,7 @@ pub fn Judge(
     lang: language,
     opt: &JudgeOption,
     SpecialJudge: &str,
+    interactive: &str,
 ) {
     let str = format!("{}{}", DATA_DIR, ProblemID);
     let path = Path::new(str.as_str());
@@ -164,6 +177,11 @@ pub fn Judge(
             opt,
             if !SpecialJudge.is_empty() {
                 Some(SpecialJudge)
+            } else {
+                None
+            },
+            if !interactive.is_empty() {
+                Some(interactive)
             } else {
                 None
             },

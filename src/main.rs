@@ -84,15 +84,19 @@ fn main() {
                         .unwrap();
                     let spj: String =
                         String::from_utf8_lossy(headers.get(5).unwrap().1).to_string();
+
+                    let interactive: String =
+                        String::from_utf8_lossy(headers.get(6).unwrap().1).to_string();
+
                     let opt = JudgeOption::new(time, mem);
                     println!("{}", payload);
                     let ref_sum = &sum;
                     s.spawn(move |_| {
-                        if *ref_sum.read().unwrap() > 10 {
+                        if *ref_sum.read().unwrap() > 60 {
                             thread::sleep(time::Duration::from_millis(100));
                         }
                         *ref_sum.write().unwrap() += 1;
-                        SphinxCore::Run::Run(uid, problem, lang, spj, opt, payload);
+                        SphinxCore::Run::Run(uid, problem, lang, spj, opt, payload, interactive);
                         *ref_sum.write().unwrap() -= 1;
                     });
                     consumer.commit_message(&m, CommitMode::Async).unwrap();

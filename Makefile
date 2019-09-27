@@ -18,6 +18,7 @@ test:
 
 core:
 	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall
+	gcc Core2.c -o /home/rinne/code/core2 -lpthread -O2 -Wall
 	g++ Jury.cpp -o /home/rinne/code/Jury -O2 -Wall -std=c++17
 
 RunTest:

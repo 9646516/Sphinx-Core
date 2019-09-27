@@ -42,9 +42,10 @@ pub fn Run(
     SpecialJudge: String,
     JudgeOpt: JudgeOption,
     Code: String,
+    interactive: String,
 ) {
     let docker = Docker::connect_with_defaults().unwrap();
-    let ContainerId = InitDocker();
+    let ContainerId = InitDocker(&docker);
     println!("copying...");
     match CopyFiles(&docker, &ContainerId, &Code, &SubmissionID, lang.clone()) {
         Ok(T) => {
@@ -69,6 +70,7 @@ pub fn Run(
                 lang.clone(),
                 &JudgeOpt,
                 &SpecialJudge,
+                &interactive,
             );
         }
         Err(T) => {
@@ -80,7 +82,7 @@ pub fn Run(
         .unwrap();
 }
 
-fn InitDocker() -> String {
+fn InitDocker(docker: &Docker) -> String {
     let output = Command::new("docker")
         .arg("create")
         .arg("--interactive")
@@ -100,11 +102,7 @@ fn InitDocker() -> String {
         .expect("create docker failed");
     let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
     println!("{}", stdout);
-    Command::new("docker")
-        .arg("start")
-        .arg(stdout.to_string())
-        .status()
-        .unwrap();
+    docker.start_container(&stdout.to_string()).unwrap();
     println!("cmd ok");
     stdout.to_string()
 }
