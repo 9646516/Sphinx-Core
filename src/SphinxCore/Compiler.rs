@@ -23,7 +23,6 @@ pub fn Compiler(docker: &Docker, id: &str, source: String, lang: language) -> Co
         id,
         format!("timeout 3s {}", lang.compile_command(source)),
     );
-    println!("{} {}", code, info);
     match code {
         0 => CompileResult {
             status: CompileStatus::SUCCESS,

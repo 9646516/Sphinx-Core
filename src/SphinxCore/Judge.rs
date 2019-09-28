@@ -103,10 +103,8 @@ pub fn Run(
             opt.time, opt.mem, opt.output, opt.stack, inputfile, run
         )
     };
-    println!("{}", cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
     let res = json::parse(&info).unwrap();
-    println!("{}", res);
     let time = res["time_cost"].as_u32().unwrap();
     let mem = res["memory_cost"].as_u32().unwrap();
     if status == 0 {

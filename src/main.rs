@@ -88,18 +88,16 @@ fn main() {
                         .to_string()
                         .parse()
                         .unwrap();
-                    println!("OK");
+
                     let JudgeType: u8 = String::from_utf8_lossy(headers.get(5).unwrap().1)
                         .to_string()
                         .parse()
                         .unwrap();
-                    println!("OK");
 
                     let judge: String =
                         String::from_utf8_lossy(headers.get(6).unwrap().1).to_string();
 
                     let opt = JudgeOption::new(time, mem);
-                    println!("{}", payload);
                     let ref_sum = &sum;
 
                     s.spawn(move |_| {

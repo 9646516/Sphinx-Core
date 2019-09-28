@@ -47,7 +47,6 @@ pub fn CopyFiles(
         &mut File::open(&code_path).unwrap(),
     )
     .unwrap();
-    println!("{:?}", &code_path);
 
     a.append_file(
         "judger",
@@ -97,7 +96,6 @@ pub fn Run(
                     return;
                 }
             }
-            println!("judging....");
             Judge(
                 &docker,
                 &ContainerId,
@@ -135,8 +133,6 @@ fn InitDocker(docker: &Docker, ProblemID: &str) -> String {
         .output()
         .expect("create docker failed");
     let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
-    println!("{}", stdout);
     docker.start_container(&stdout.to_string()).unwrap();
-    println!("cmd ok");
     stdout.to_string()
 }

@@ -1,8 +1,6 @@
 extern crate futures;
 extern crate rdkafka;
 
-use std::time::Instant;
-
 use futures::*;
 use rdkafka::{config::*, message::*, producer::*};
 
@@ -14,7 +12,6 @@ pub fn UpdateRealTimeInfo(
     last: &u32,
     info: &str,
 ) {
-    let op = Instant::now();
     let topic_name = "result";
     let brokers = "localhost:9092";
     let producer: FutureProducer = ClientConfig::new()
@@ -23,10 +20,6 @@ pub fn UpdateRealTimeInfo(
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
-    println!(
-        "Connected,Elapsed {} secs",
-        op.elapsed().as_micros() as f64 / 1000f64
-    );
     let futures = producer
         .send(
             FutureRecord::to(topic_name)
@@ -47,6 +40,4 @@ pub fn UpdateRealTimeInfo(
         "{} {} {} {} {} {}",
         status, mem, time, SubmissionID, last, info
     );
-    println!("Future completed. Result: {:?}", futures.wait());
-    println!("Elapsed {} secs", op.elapsed().as_micros() as f64 / 1000f64);
 }
