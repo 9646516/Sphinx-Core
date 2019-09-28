@@ -66,28 +66,34 @@ fn main() {
                     }
                     .to_string();
                     let headers = m.headers().unwrap();
-                    assert_eq!(headers.count(), 6);
+                    assert_eq!(headers.count(), 7);
+
                     let problem = String::from_utf8_lossy(headers.get(0).unwrap().1).to_string();
+
                     let time: u32 = String::from_utf8_lossy(headers.get(1).unwrap().1)
                         .to_string()
                         .parse()
                         .unwrap();
+
                     let mem: u32 = String::from_utf8_lossy(headers.get(2).unwrap().1)
                         .to_string()
                         .parse()
                         .unwrap();
+
                     let lang = language::from(
                         &String::from_utf8_lossy(headers.get(3).unwrap().1).to_string(),
                     );
+
                     let uid: u32 = String::from_utf8_lossy(headers.get(4).unwrap().1)
                         .to_string()
                         .parse()
                         .unwrap();
-
+                    println!("OK");
                     let JudgeType: u8 = String::from_utf8_lossy(headers.get(5).unwrap().1)
                         .to_string()
                         .parse()
                         .unwrap();
+                    println!("OK");
 
                     let judge: String =
                         String::from_utf8_lossy(headers.get(6).unwrap().1).to_string();
@@ -95,8 +101,9 @@ fn main() {
                     let opt = JudgeOption::new(time, mem);
                     println!("{}", payload);
                     let ref_sum = &sum;
+
                     s.spawn(move |_| {
-                        if *ref_sum.read().unwrap() > 60 {
+                        while *ref_sum.read().unwrap() > 40 {
                             thread::sleep(time::Duration::from_millis(100));
                         }
                         *ref_sum.write().unwrap() += 1;

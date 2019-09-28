@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,26 +11,23 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <bits/signum-generic.h>
 
 long long timelimit;
 __pid_t pid;
 int Exceeded_wall_clock_time = 0;
+const int judge_user = 6666;
 
-void errExit(char *msg)
-{
+void errExit(char *msg) {
     fprintf(stdout, "{\"result\":\"%s\", \"additional_info\": \"%s\" }\n", "Judger Error", msg);
     exit(-1);
 }
 
-void goodExit(char *msg, long long timecost, long long memorycost)
-{
+void goodExit(char *msg, long long timecost, long long memorycost) {
     fprintf(stdout, "{\"result\":\"%s\", \"time_cost\": %lld , \"memory_cost\": %lld }\n", msg, timecost, memorycost);
     exit(0);
 }
 
-void set_limit(int type, int value, int ext)
-{
+void set_limit(int type, int value, int ext) {
     struct rlimit _;
     _.rlim_cur = (value);
     _.rlim_max = value + ext;
@@ -37,15 +35,13 @@ void set_limit(int type, int value, int ext)
         errExit("Setrlimit error");
 }
 
-void wait_to_kill_childprocess()
-{
+void wait_to_kill_childprocess() {
     sleep(((timelimit + 999) / 1000) << 1);
     kill(pid, 9);
     Exceeded_wall_clock_time = 1;
 }
 
-int get_status_code(int x)
-{
+int get_status_code(int x) {
     if (x > 128)
         x -= 128;
     return x;
@@ -54,8 +50,9 @@ int get_status_code(int x)
  * Author: 9646516
  * Used for Interactive Problem
  *****************************************************************************/
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
+    if (argc != 9)
+        errExit("Arguments number should be 8");
     timelimit = atoll(argv[1]);
     long long memorylimit = atoll(argv[2]);
     long long outputlimit = atoll(argv[3]);
@@ -72,11 +69,9 @@ int main(int argc, char *argv[])
     pipe(pipe2);
     __pid_t pid2;
     pid = fork();
-    if (pid > 0)
-    {
+    if (pid > 0) {
         pid2 = fork();
-        if (pid2 > 0)
-        { //主程序
+        if (pid2 > 0) { //主程序
             pthread_t watch_thread;
             if (pthread_create(&watch_thread, NULL, (void *)wait_to_kill_childprocess, NULL))
                 errExit("Can not create watch pthread");
@@ -99,27 +94,21 @@ int main(int argc, char *argv[])
                 goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
 
             FILE *fp = fopen(output_sourcefile, "r");
-            if (fp == NULL)
-            {
+            if (fp == NULL) {
                 errExit("Checker error");
-            }
-            else
-            {
+            } else {
                 fgets(sb, 1024, fp);
                 goodExit(strncmp(sb, "Accepted", 8) == 0 ? "Accepted" : "Wrong Answer", timecost / 1000, result.ru_maxrss);
             }
-        }
-        else if (pid2 == 0)
-        { //测评鸡
+        } else if (pid2 == 0) { //测评鸡
             dup2(pipe1[0], STDIN_FILENO);
             dup2(pipe2[1], STDOUT_FILENO);
             execl("/bin/sh", "sh", "-c", sb, (char *)0);
         }
-    }
-    else if (pid == 0)
-    { //被测程序
+    } else if (pid == 0) { //被测程序
         dup2(pipe1[1], STDOUT_FILENO);
         dup2(pipe2[0], STDIN_FILENO);
+        setuid(judge_user);
         set_limit(RLIMIT_CPU, (timelimit + 999) / 1000, 1);
         set_limit(RLIMIT_DATA, memorylimit, 0);
         set_limit(RLIMIT_FSIZE, outputlimit, 0);

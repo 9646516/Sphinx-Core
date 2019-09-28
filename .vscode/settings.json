@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "signum-generic.h": "c",
+        "ostream": "cpp"
+    }
+}

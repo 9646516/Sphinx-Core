@@ -87,22 +87,21 @@ pub fn Run(
     Judger: &str,
     JudgeType: &u8,
 ) -> (JudgeStatus, u32, u32) {
-    let run = lang.running_command("/tmp");
-    let temp = format!("\"/tmp/res\"");
-    let checker = format!("\"/tmp/{}\"", Judger);
+    let run = lang.running_command("/tmp".to_string());
     let inputfile = format!("\"/data/{}.in\"", prefix);
-    let cmd = if JudgeType != 2 {
+    let cmd = if *JudgeType != 2 {
         let outputfile = format!("\"/data/{}.out\"", prefix);
         format!(
-            "/tmp/core {} {} {} {} {} {} {} {} {}",
-            opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, outputfile, run, checker
+            "/tmp/core {} {} {} {} {} \"/tmp/res\" {} {} \"/tmp/judger\"",
+            opt.time, opt.mem, opt.output, opt.stack, inputfile, outputfile, run
         )
     } else {
         format!(
-            "/tmp/core2 {} {} {} {} {} {} {} {}",
-            opt.time, opt.mem, opt.output, opt.stack, inputfile, temp, run, checker
+            "/tmp/core {} {} {} {} {} \"/tmp/res\" {} \"/tmp/judger\"",
+            opt.time, opt.mem, opt.output, opt.stack, inputfile, run
         )
     };
+    println!("{}", cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
     let res = json::parse(&info).unwrap();
     println!("{}", res);
@@ -146,7 +145,7 @@ pub fn Judge(
             let prefix = buf.file_name().unwrap().to_str().unwrap();
             let suffix = buf.extension();
             if suffix.is_some() && suffix.unwrap().to_str().unwrap() == "in" {
-                if JudgeType == 2 || entry.path().with_extension("out").exists() {
+                if *JudgeType == 2 || entry.path().with_extension("out").exists() {
                     test_case.push(prefix.to_string().replace(".in", ""));
                 }
             }

@@ -4,22 +4,26 @@ image:
 clean:
 	docker rm -f $$(docker ps -aq)
 
-dir:
-	mkdir /home/rinne/data/
-	mkdir /home/rinne/data/a+b
-	mkdir /home/rinne/code
-test:
-	echo "1 2" > /home/rinne/data/a+b/1.in
-	echo "3" > /home/rinne/data/a+b/1.out
-	echo "10 20" > /home/rinne/data/a+b/2.in
-	echo "30" > /home/rinne/data/a+b/2.out
-	echo "100 200" > /home/rinne/data/a+b/3.in
-	echo "300" > /home/rinne/data/a+b/3.out
-
-core:
-	gcc Core.c -o /home/rinne/code/core -lpthread -O2 -Wall
-	gcc Core2.c -o /home/rinne/code/core2 -lpthread -O2 -Wall
-	g++ Jury.cpp -o /home/rinne/code/Jury -O2 -Wall -std=c++17
+build:
+	mkdir -p /home/rinne/Spinex/data/1
+	mkdir -p /home/rinne/Spinex/data/2
+	mkdir -p /home/rinne/Spinex/code
+	mkdir -p /home/rinne/Spinex/checker
+	mkdir -p /home/rinne/Spinex/core
+	echo "1 2" > /home/rinne/Spinex/data/1/1.in
+	echo "3" > /home/rinne/Spinex/data/1/1.out
+	echo "10 20" > /home/rinne/Spinex/data/1/2.in
+	echo "30" > /home/rinne/Spinex/data/1/2.out
+	echo "100 200" > /home/rinne/Spinex/data/1/3.in
+	echo "300" > /home/rinne/Spinex/data/1/3.out
+	echo "300" > /home/rinne/Spinex/data/2/1.in
+	echo "500" > /home/rinne/Spinex/data/2/2.in
+	echo "700" > /home/rinne/Spinex/data/2/3.in
+	sudo chmod -R 770 /home/rinne/Spinex/data/
+	gcc Core.c -o /home/rinne/Spinex/core/core -lpthread -O2 -Wall
+	gcc Core2.c -o /home/rinne/Spinex/core/core2 -lpthread -O2 -Wall
+	g++ Jury.cpp -o /home/rinne/Spinex/checker/Jury -O2 -Wall -std=c++17
+	g++ test/binary_search/judge.cpp -o /home/rinne/Spinex/checker/2 -O2 -Wall -std=c++17
 
 RunTest:
 	cargo test --release -- --nocapture
@@ -50,9 +54,7 @@ list:
 
 .PHONY: image
 .PHONY: clean
-.PHONY: test
-.PHONY: core
-.PHONY: dir
+.PHONY: build
 .PHONY: RunTest
 .PHONY: RunZoo
 .PHONY: RunKafka

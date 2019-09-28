@@ -7,7 +7,7 @@ use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
 
 fn produce(brokers: &str, topic_name: &str, uid: i32) {
-    let cpp = read_to_string("./test/a+b/Main.java").unwrap();
+    let cpp = read_to_string("./test/others/dust.cpp").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
         .set("produce.offset.report", "true")
@@ -21,13 +21,13 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
                 .key(&format!("233"))
                 .headers(
                     OwnedHeaders::new()
-                        .add("problem", "a+b")
+                        .add("problem", "1")
                         .add("time", "1000")
                         .add("mem", "256000000")
-                        .add("lang", "JAVA")
-                        .add("uid", &uid.to_string())
-                        .add("spj", "")
-                        .add("interactive", ""),
+                        .add("lang", "GNU")
+                        .add("uid", "3")
+                        .add("JudgeType", "1")
+                        .add("judge", "Jury"),
                 ),
             0,
         )
@@ -85,7 +85,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                 }
                 consumer.commit_message(&m, CommitMode::Async).unwrap();
                 if payload != "RUNNING" {
-                    //  break;
+                    // break;
                 }
             }
         };
@@ -96,7 +96,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 fn main() {
     let topic = "in";
     let brokers = "localhost:9092";
-    for _i in 0..100 {
+    for _i in 0..1 {
         produce(brokers, topic, _i as i32);
     }
     let topics = vec!["result"];
