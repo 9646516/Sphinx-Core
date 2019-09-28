@@ -86,7 +86,6 @@ pub fn Run(
     prefix: &String,
     lang: language,
     opt: &JudgeOption,
-    Judger: &str,
     JudgeType: &u8,
 ) -> (JudgeStatus, u32, u32) {
     let run = lang.running_command("/tmp".to_string());
@@ -134,7 +133,6 @@ pub fn Judge(
     ProblemID: &str,
     lang: language,
     opt: &JudgeOption,
-    Judger: &str,
     JudgeType: &u8,
 ) {
     let str = format!("{}/{}", DATA_DIR, ProblemID);
@@ -156,7 +154,7 @@ pub fn Judge(
     println!("{:?}", test_case);
     let mut last = 0;
     for i in &test_case {
-        let (status, _t, _m) = Run(docker, ContainerId, i, lang.clone(), opt, Judger, JudgeType);
+        let (status, _t, _m) = Run(docker, ContainerId, i, lang.clone(), opt, JudgeType);
         if status == JudgeStatus::ACCEPTED {
             UpdateRealTimeInfo(
                 if last == test_case.len() as u32 - 1 {

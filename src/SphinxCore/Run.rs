@@ -34,8 +34,8 @@ pub fn CopyFiles(
         return Err("make file failed".to_string());
     }
     match file.unwrap().write_all(Code.as_bytes()) {
-        Ok(T) => {}
-        Err(T) => return Err("write file failed".to_string()),
+        Ok(_) => {}
+        Err(T) => return Err(format!("write file failed,{}", T)),
     };
 
     let TarPath = format!("{}/{}/foo.tar", WORK_DIR, uid);
@@ -88,7 +88,7 @@ pub fn Run(
         lang.clone(),
         &JudgeType,
     ) {
-        Ok(T) => {
+        Ok(_) => {
             if lang.compile() {
                 let res = Compiler(&docker, &ContainerId, "/tmp".to_string(), lang.clone());
                 if res.status == CompileStatus::FAILED {
@@ -103,7 +103,6 @@ pub fn Run(
                 &ProblemID,
                 lang.clone(),
                 &JudgeOpt,
-                &Judger,
                 &JudgeType,
             );
         }

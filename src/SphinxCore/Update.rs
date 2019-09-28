@@ -1,7 +1,6 @@
 extern crate futures;
 extern crate rdkafka;
 
-use futures::*;
 use rdkafka::{config::*, message::*, producer::*};
 
 pub fn UpdateRealTimeInfo(
@@ -20,22 +19,20 @@ pub fn UpdateRealTimeInfo(
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
-    let futures = producer
-        .send(
-            FutureRecord::to(topic_name)
-                .payload(status)
-                .key("")
-                .headers(
-                    OwnedHeaders::new()
-                        .add("mem", &format!("{}", mem))
-                        .add("time", &format!("{}", time))
-                        .add("uid", &format!("{}", SubmissionID))
-                        .add("last", &format!("{}", last))
-                        .add("info", info),
-                ),
-            0,
-        )
-        .map(move |delivery_status| delivery_status);
+    producer.send(
+        FutureRecord::to(topic_name)
+            .payload(status)
+            .key("")
+            .headers(
+                OwnedHeaders::new()
+                    .add("mem", &format!("{}", mem))
+                    .add("time", &format!("{}", time))
+                    .add("uid", &format!("{}", SubmissionID))
+                    .add("last", &format!("{}", last))
+                    .add("info", info),
+            ),
+        0,
+    );
     println!(
         "{} {} {} {} {} {}",
         status, mem, time, SubmissionID, last, info
