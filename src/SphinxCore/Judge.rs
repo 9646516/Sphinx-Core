@@ -16,6 +16,7 @@ pub enum JudgeStatus {
     MEMORY_LIMITED_ERROR,
     OUTPUT_LIMITED_ERROR,
     COMPILE_ERROR,
+    ASSERT_FAILED,
     UNKNOWN_ERROR,
 }
 
@@ -29,6 +30,7 @@ impl JudgeStatus {
             JudgeStatus::MEMORY_LIMITED_ERROR => "MEMORY LIMITED ERROR",
             JudgeStatus::OUTPUT_LIMITED_ERROR => "OUTPUT LIMITED ERROR",
             JudgeStatus::COMPILE_ERROR => "COMPILE ERROR",
+            JudgeStatus::ASSERT_FAILED => "ASSERT FAILED",
             JudgeStatus::UNKNOWN_ERROR => "UNKNOWN ERROR",
         }
     }
@@ -116,6 +118,7 @@ pub fn Run(
                 "Output Limit Exceeded" => JudgeStatus::OUTPUT_LIMITED_ERROR,
                 "Accepted" => JudgeStatus::ACCEPTED,
                 "Wrong Answer" => JudgeStatus::WRONG_ANSWER,
+                "Assert Failed" => JudgeStatus::ASSERT_FAILED,
                 _ => JudgeStatus::UNKNOWN_ERROR,
             },
             time,

@@ -1,5 +1,5 @@
-#include <signal.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,10 +97,12 @@ int main(int argc, char *argv[]) {
         long long timecost = (long long)result.ru_utime.tv_sec * 1000000LL + (long long)result.ru_utime.tv_usec;
         if (status_code == SIGXCPU || timecost > timelimit * 1000LL || Exceeded_wall_clock_time)
             goodExit("Time Limit Exceeded", timelimit, result.ru_maxrss);
+        else if (status_code == SIGIOT)
+            goodExit("Assert Failed", timecost / 1000, result.ru_maxrss);
         else if (status_code == SIGXFSZ)
             goodExit("Output Limit Exceeded", timecost / 1000, result.ru_maxrss);
-        else if (result.ru_maxrss * 1024 > memorylimit || status_code == SIGIOT)
-            goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit / 1024);
+        else if (result.ru_maxrss * 1024 > memorylimit)
+            goodExit("Memory Limit Exceeded", timecost / 1000, result.ru_maxrss / 1024);
         else if (status_code != 0)
             goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
         int checker_statuscode = system(checker_arguments);

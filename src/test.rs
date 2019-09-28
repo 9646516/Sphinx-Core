@@ -7,7 +7,7 @@ use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
 
 fn produce(brokers: &str, topic_name: &str, uid: i32) {
-    let cpp = read_to_string("./test/others/dust.cpp").unwrap();
+    let cpp = read_to_string("./test/binary_search/sol.cpp").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
         .set("produce.offset.report", "true")
@@ -25,9 +25,9 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
                         .add("time", "1000")
                         .add("mem", "256000000")
                         .add("lang", "GNU")
-                        .add("uid", "3")
-                        .add("JudgeType", "1")
-                        .add("judge", "Jury"),
+                        .add("uid", &uid.to_string())
+                        .add("JudgeType", "2")
+                        .add("judge", "2"),
                 ),
             0,
         )
@@ -96,7 +96,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 fn main() {
     let topic = "in";
     let brokers = "localhost:9092";
-    for _i in 0..1 {
+    for _i in 0..10 {
         produce(brokers, topic, _i as i32);
     }
     let topics = vec!["result"];
