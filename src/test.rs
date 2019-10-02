@@ -1,11 +1,10 @@
 extern crate futures;
 extern crate rdkafka;
 
-use std::fs::read_to_string;
-
+use bytes::{BigEndian, BufMut, BytesMut};
 use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
-
+use std::fs::read_to_string;
 fn produce(brokers: &str, topic_name: &str, uid: i32) {
     let cpp = read_to_string("./test/binary_search/sol.cpp").unwrap();
     let producer: FutureProducer = ClientConfig::new()
@@ -14,6 +13,23 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
+    let mut buf = BytesMut::with_capacity(1024);
+    buf.put_u64_be(1);
+    let A = buf.take();
+    buf.put_u64_be(1000);
+    let B = buf.take();
+    buf.put_u64_be(256000000);
+    let C = buf.take();
+    buf.put_u64_be(1);
+    let G = buf.take();
+
+    buf.put_u64_be(1);
+    let D = buf.take();
+    buf.put_u64_be(2);
+    let E = buf.take();
+    buf.put("2");
+    let F = buf.take();
+
     let futures = producer
         .send(
             FutureRecord::to(topic_name)
@@ -21,13 +37,13 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
                 .key(&format!("233"))
                 .headers(
                     OwnedHeaders::new()
-                        .add("problem", "1")
-                        .add("time", "1000")
-                        .add("mem", "256000000")
-                        .add("lang", "GNU")
-                        .add("uid", &uid.to_string())
-                        .add("JudgeType", "2")
-                        .add("judge", "2"),
+                        .add("problem", &A.to_vec())
+                        .add("time", &B.to_vec())
+                        .add("mem", &C.to_vec())
+                        .add("lang", &G.to_vec())
+                        .add("uid", &D.to_vec())
+                        .add("JudgeType", &E.to_vec())
+                        .add("judge", &F.to_vec()),
                 ),
             0,
         )
@@ -96,7 +112,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 fn main() {
     let topic = "in";
     let brokers = "localhost:9092";
-    for _i in 0..10 {
+    for _i in 0..1 {
         produce(brokers, topic, _i as i32);
     }
     let topics = vec!["result"];

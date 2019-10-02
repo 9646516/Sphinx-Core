@@ -1,7 +1,6 @@
-use std::path::Path;
-
 use dockworker::Docker;
 
+use super::Config;
 use super::DockerUtils;
 use super::Language::language;
 use super::SphinxCore::Env::*;
@@ -36,76 +35,34 @@ impl JudgeStatus {
     }
 }
 
-#[derive(Debug)]
-pub struct JudgeResult {
-    pub status: JudgeStatus,
-    pub info: Option<String>,
-    pub time_cost: u32,
-    pub memory_cost: u32,
-    pub last: u32,
-}
-
-#[derive(Debug, Clone)]
-pub struct JudgeOption {
-    pub time: u32,
-    pub mem: u32,
-    pub output: u32,
-    pub stack: u32,
-}
-
-impl JudgeOption {
-    pub fn new(time: u32, mem: u32) -> Self {
-        Self {
-            time,
-            mem,
-            output: 64_000_000,
-            stack: 512_000_000,
-        }
-    }
-    pub fn time(&mut self, time: u32) -> &mut Self {
-        self.time = time;
-        self
-    }
-    pub fn mem(&mut self, mem: u32) -> &mut Self {
-        self.mem = mem;
-        self
-    }
-    pub fn output(&mut self, output: u32) -> &mut Self {
-        self.output = output;
-        self
-    }
-    pub fn stack(&mut self, stack: u32) -> &mut Self {
-        self.stack = stack;
-        self
-    }
-}
-
 pub fn Run(
     docker: &Docker,
     ContainerId: &str,
-    prefix: &String,
+    task: &Config::Task,
     lang: language,
-    opt: &JudgeOption,
-    JudgeType: &u8,
-) -> (JudgeStatus, u32, u32) {
+    core: bool,
+) -> (JudgeStatus, u64, u64) {
+    //generate command
     let run = lang.running_command("/tmp".to_string());
-    let inputfile = format!("\"/data/{}.in\"", prefix);
-    let cmd = if *JudgeType != 2 {
-        let outputfile = format!("\"/data/{}.out\"", prefix);
+    let inputfile = format!("{}/{}", PAN_DIR, task.input);
+    let cmd = if !core {
+        let outputfile = format!("{}/{}", PAN_DIR, task.output);
+
         format!(
             "/tmp/core {} {} {} {} {} \"/tmp/res\" {} {} \"/tmp/judger\"",
-            opt.time, opt.mem, opt.output, opt.stack, inputfile, outputfile, run
+            task.time, task.mem, 256_000_000, 256_000_000, inputfile, outputfile, run
         )
     } else {
         format!(
             "/tmp/core {} {} {} {} {} \"/tmp/res\" {} \"/tmp/judger\"",
-            opt.time, opt.mem, opt.output, opt.stack, inputfile, run
+            task.time, task.mem, 256_000_000, 256_000_000, inputfile, run
         )
     };
+    //exec
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
     let res = json::parse(&info).unwrap();
-    let time = res["time_cost"].as_u32().unwrap();
-    let mem = res["memory_cost"].as_u32().unwrap();
+    let time = res["time_cost"].as_u64().unwrap();
+    let mem = res["memory_cost"].as_u64().unwrap();
     if status == 0 {
         (
             match res["result"].as_str().unwrap() {
@@ -129,49 +86,62 @@ pub fn Run(
 pub fn Judge(
     docker: &Docker,
     ContainerId: &str,
-    SubmissionId: &u32,
-    ProblemID: &str,
+    uid: u64,
+    JudgeOpt: &Config::Config,
     lang: language,
-    opt: &JudgeOption,
-    JudgeType: &u8,
 ) {
-    let str = format!("{}/{}", DATA_DIR, ProblemID);
-    let path = Path::new(str.as_str());
-    let mut test_case = Vec::new();
-    for entry in path.read_dir().expect("read_dir call failed") {
-        if let Ok(entry) = entry {
-            let buf = entry.path();
-            let prefix = buf.file_name().unwrap().to_str().unwrap();
-            let suffix = buf.extension();
-            if suffix.is_some() && suffix.unwrap().to_str().unwrap() == "in" {
-                if *JudgeType == 2 || entry.path().with_extension("out").exists() {
-                    test_case.push(prefix.to_string().replace(".in", ""));
-                }
+    let Task_Sum = JudgeOpt.tasks.len() as u32 - 1;
+    let acm = JudgeOpt.judge_type == "acm";
+    //use interactive core
+    let core = JudgeOpt.spj == INTERACTIVE_JUDGE;
+    let mut last: u32 = 0;
+    if acm {
+        for i in JudgeOpt.tasks.iter() {
+            let (status, _t, _m) = Run(docker, ContainerId, i, lang.clone(), core);
+            if status == JudgeStatus::ACCEPTED {
+                UpdateRealTimeInfo(
+                    if last == Task_Sum {
+                        "ACCEPTED"
+                    } else {
+                        "RUNNING"
+                    },
+                    _m,
+                    _t,
+                    uid,
+                    last,
+                    0,
+                    "",
+                );
+                last += 1;
+            } else {
+                UpdateRealTimeInfo(status.to_string(), _m, _t, uid, last, 0, "");
+                break;
             }
         }
-    }
-    test_case.sort();
-    println!("{:?}", test_case);
-    let mut last = 0;
-    for i in &test_case {
-        let (status, _t, _m) = Run(docker, ContainerId, i, lang.clone(), opt, JudgeType);
-        if status == JudgeStatus::ACCEPTED {
+    } else {
+        let mut score = 0;
+        let mut res = "ACCEPTED".to_owned();
+        for i in JudgeOpt.tasks.iter() {
+            let (status, _t, _m) = Run(docker, ContainerId, i, lang.clone(), core);
+            if status == JudgeStatus::ACCEPTED {
+                score += i.score;
+            } else {
+                res = status.to_string().to_owned();
+            }
             UpdateRealTimeInfo(
-                if last == test_case.len() as u32 - 1 {
-                    "ACCEPTED"
+                if last == Task_Sum {
+                    res.as_str()
                 } else {
                     "RUNNING"
                 },
-                &_m,
-                &_t,
-                SubmissionId,
-                &last,
+                _m,
+                _t,
+                uid,
+                last,
+                score,
                 "",
             );
             last += 1;
-        } else {
-            UpdateRealTimeInfo(status.to_string(), &_m, &_t, SubmissionId, &last, "");
-            break;
         }
     }
 }

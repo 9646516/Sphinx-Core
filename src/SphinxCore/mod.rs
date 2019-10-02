@@ -1,6 +1,7 @@
 use super::*;
 
 pub mod Compiler;
+pub mod Config;
 pub mod DockerUtils;
 pub mod Env;
 pub mod Judge;

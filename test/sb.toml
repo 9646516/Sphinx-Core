@@ -1,0 +1,16 @@
+[judge]
+
+judge-type = "acm"
+
+[[judge.tasks]]
+name = "task"
+time-limit = 1000000000
+memory-limit = 262144
+input-path = "/codes/"
+output-path = "/codes/"
+
+[special-judge]
+
+enable = true
+language-type = "c++11"
+file-path = "/spj.cpp"

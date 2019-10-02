@@ -11,16 +11,16 @@ pub enum language {
 }
 
 impl language {
-    pub fn from(str: &str) -> language {
+    pub fn from(str: u64) -> language {
         match str {
-            "GCC" => language::GCC,
-            "GNU" => language::GNU,
-            "CLANG" => language::CLANG,
-            "CLANGPP" => language::CLANGPP,
-            "JAVA" => language::JAVA,
-            "RUST" => language::RUST,
-            "PY2" => language::PY2,
-            "PY3" => language::PY3,
+            0 => language::GCC,
+            1 => language::GNU,
+            2 => language::CLANG,
+            3 => language::CLANGPP,
+            4 => language::JAVA,
+            5 => language::RUST,
+            6 => language::PY2,
+            7 => language::PY3,
             _ => panic!("lang err"),
         }
     }

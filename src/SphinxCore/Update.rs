@@ -5,10 +5,11 @@ use rdkafka::{config::*, message::*, producer::*};
 
 pub fn UpdateRealTimeInfo(
     status: &str,
-    mem: &u32,
-    time: &u32,
-    SubmissionID: &u32,
-    last: &u32,
+    mem: u64,
+    time: u64,
+    SubmissionID: u64,
+    last: u32,
+    score: u64,
     info: &str,
 ) {
     let topic_name = "result";
@@ -29,6 +30,7 @@ pub fn UpdateRealTimeInfo(
                     .add("time", &format!("{}", time))
                     .add("uid", &format!("{}", SubmissionID))
                     .add("last", &format!("{}", last))
+                    .add("score", &format!("{}", score))
                     .add("info", info),
             ),
         0,
