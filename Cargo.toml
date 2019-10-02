@@ -1,6 +1,6 @@
 [package]
 name = "Sphinx-Core"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["9646516 <zyq855@gmail.com>"]
 edition = "2018"
 

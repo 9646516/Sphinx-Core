@@ -44,9 +44,9 @@ pub fn Run(
 ) -> (JudgeStatus, u64, u64) {
     //generate command
     let run = lang.running_command("/tmp".to_string());
-    let inputfile = format!("{}/{}", PAN_DIR, task.input);
+    let inputfile = format!("/data/{}", task.input);
     let cmd = if !core {
-        let outputfile = format!("{}/{}", PAN_DIR, task.output);
+        let outputfile = format!("/data/{}", task.output);
 
         format!(
             "/tmp/core {} {} {} {} {} \"/tmp/res\" {} {} \"/tmp/judger\"",
@@ -59,8 +59,13 @@ pub fn Run(
         )
     };
     //exec
+    println!("{}", cmd);
     let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
+    println!("{} {}", status, info);
     let res = json::parse(&info).unwrap();
+    if res["result"].as_str().unwrap() == "Judger Error" {
+        return (JudgeStatus::UNKNOWN_ERROR, 0, 0);
+    }
     let time = res["time_cost"].as_u64().unwrap();
     let mem = res["memory_cost"].as_u64().unwrap();
     if status == 0 {

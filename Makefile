@@ -25,8 +25,8 @@ build:
 
 	gcc Core.c -o /home/rinne/Sphinx/core/core -lpthread -O2 -Wall
 	gcc Core2.c -o /home/rinne/Sphinx/core/core2 -lpthread -O2 -Wall
-	g++ Jury.cpp -o /home/rinne/Sphinx/core/Jury -O2 -Wall -std=c++17
-	g++ test/binary_search/judge.cpp -o /home/rinne/Sphinx/2 -O2 -Wall -std=c++17
+	g++ Jury.cpp -o /home/rinne/Sphinx/Pan/Jury -O2 -Wall -std=c++17
+	g++ test/binary_search/judge.cpp -o /home/rinne/Sphinx/Pan/2/xjb -O2 -Wall -std=c++17
 
 RunTest:
 	cargo test --release -- --nocapture

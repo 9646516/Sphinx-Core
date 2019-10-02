@@ -55,8 +55,3 @@ impl Config {
         }
     }
 }
-#[test]
-fn test() {
-    let res = Config::read("sb.toml");
-    println!("{:?}", res);
-}

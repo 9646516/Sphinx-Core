@@ -36,7 +36,6 @@ pub fn CopyFiles(
         Ok(_) => {}
         Err(T) => return Err(format!("write file failed,{}", T)),
     };
-
     // Copy Jury , Code and Core into Docker
     let TarPath = format!("{}/{}/foo.tar", WORK_DIR, uid);
     let file = File::create(&TarPath).unwrap();
@@ -47,13 +46,11 @@ pub fn CopyFiles(
         &mut File::open(&code_path).unwrap(),
     )
     .unwrap();
-
     a.append_file(
         "judger",
         &mut File::open(&format!("{}/{}", PAN_DIR, JudgeOpt.spj_path)).unwrap(),
     )
     .unwrap();
-
     if JudgeOpt.spj != INTERACTIVE_JUDGE {
         a.append_file("core", &mut File::open(CORE1).unwrap())
             .unwrap();

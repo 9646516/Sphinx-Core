@@ -25,7 +25,13 @@ impl ClientContext for CustomContext {}
 impl ConsumerContext for CustomContext {}
 
 type LoggingConsumer = StreamConsumer<CustomContext>;
-
+fn get_number(V: &[u8]) -> u64 {
+    let mut ret: u64 = 0;
+    for i in V.iter() {
+        ret = ret * 256u64 + u64::from(*i);
+    }
+    ret
+}
 fn main() {
     let topics = vec!["in"];
     let brokers = "localhost:9092";
@@ -64,25 +70,16 @@ fn main() {
                     }
                     .to_string();
                     let headers = m.headers().unwrap();
-                    assert_eq!(headers.count(), 2);
+                    assert_eq!(headers.count(), 3);
+
                     let path: String =
                         String::from_utf8_lossy(headers.get(0).unwrap().1).to_string();
 
-                    let lang = language::from(
-                        String::from_utf8_lossy(headers.get(1).unwrap().1)
-                            .to_string()
-                            .parse()
-                            .unwrap(),
-                    );
+                    let lang = language::from(get_number(headers.get(1).unwrap().1));
 
-                    let uid: u64 = String::from_utf8_lossy(headers.get(2).unwrap().1)
-                        .to_string()
-                        .parse()
-                        .unwrap();
-
+                    let uid: u64 = get_number(headers.get(1).unwrap().1);
                     let conf = Config::Config::read(&path);
                     let ref_sum = &sum;
-
                     s.spawn(move |_| {
                         while *ref_sum.read().unwrap() > 40 {
                             thread::sleep(time::Duration::from_millis(100));

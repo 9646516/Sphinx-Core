@@ -1,7 +1,7 @@
 extern crate futures;
 extern crate rdkafka;
 
-use bytes::{BigEndian, BufMut, BytesMut};
+use bytes::{BufMut, BytesMut};
 use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
 use std::fs::read_to_string;
@@ -14,21 +14,13 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
         .create()
         .expect("Producer creation error");
     let mut buf = BytesMut::with_capacity(1024);
-    buf.put_u64_be(1);
-    let A = buf.take();
-    buf.put_u64_be(1000);
-    let B = buf.take();
-    buf.put_u64_be(256000000);
-    let C = buf.take();
-    buf.put_u64_be(1);
-    let G = buf.take();
 
+    buf.put("/home/rinne/Sphinx-Core/test/bs.toml");
+    let A = buf.take();
     buf.put_u64_be(1);
-    let D = buf.take();
-    buf.put_u64_be(2);
-    let E = buf.take();
-    buf.put("2");
-    let F = buf.take();
+    let B = buf.take();
+    buf.put_u64_be(3);
+    let C = buf.take();
 
     let futures = producer
         .send(
@@ -38,12 +30,8 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
                 .headers(
                     OwnedHeaders::new()
                         .add("problem", &A.to_vec())
-                        .add("time", &B.to_vec())
-                        .add("mem", &C.to_vec())
-                        .add("lang", &G.to_vec())
-                        .add("uid", &D.to_vec())
-                        .add("JudgeType", &E.to_vec())
-                        .add("judge", &F.to_vec()),
+                        .add("lang", &B.to_vec())
+                        .add("uid", &C.to_vec()),
                 ),
             0,
         )
