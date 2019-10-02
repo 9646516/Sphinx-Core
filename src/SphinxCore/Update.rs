@@ -36,7 +36,7 @@ pub fn UpdateRealTimeInfo(
         0,
     );
     println!(
-        "{} {} {} {} {} {}",
-        status, mem, time, SubmissionID, last, info
+        "status:{} mem:{} time:{} uid:{} last:{} info:{} score:{}",
+        status, mem, time, SubmissionID, last, info, score
     );
 }

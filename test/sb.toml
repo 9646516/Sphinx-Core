@@ -6,25 +6,11 @@ judge-type = "acm"
     name = "task"
     time-limit = 1000
     memory-limit = 256000000
-    input-path = "1/1.in"
-    output-path = "1/1.out"
+    input-path = "1"
+    output-path = "1"
     score=10
 
-    [[judge.tasks]]
-    name = "task"
-    time-limit = 1000
-    memory-limit = 256000000
-    input-path = "1/2.in"
-    output-path = "1/2.out"
-    score=10
 
-    [[judge.tasks]]
-    name = "task"
-    time-limit = 1000
-    memory-limit = 256000000
-    input-path = "1/3.in"
-    output-path = "1/3.out"
-    score=10
 
 [special-judge]
 enable = 0

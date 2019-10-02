@@ -6,20 +6,23 @@ use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
 use std::fs::read_to_string;
 fn produce(brokers: &str, topic_name: &str, uid: i32) {
+    let mut buf = BytesMut::with_capacity(1024);
+
     let cpp = read_to_string("./test/binary_search/sol.cpp").unwrap();
+    buf.put("/home/rinne/Sphinx-Core/test/bs.toml");
+    // buf.put("/home/rinne/Sphinx-Core/test/sb.toml");
+    // let cpp = read_to_string("./test/a+b/Main.cpp").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
         .set("produce.offset.report", "true")
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
-    let mut buf = BytesMut::with_capacity(1024);
 
-    buf.put("/home/rinne/Sphinx-Core/test/bs.toml");
     let A = buf.take();
     buf.put_u64_be(1);
     let B = buf.take();
-    buf.put_u64_be(3);
+    buf.put_u64_be(uid as u64);
     let C = buf.take();
 
     let futures = producer

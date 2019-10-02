@@ -63,7 +63,8 @@ int main(int argc, char *argv[]) {
     char *checker_sourcefile = argv[8];
     static char sb[114514];
     sprintf(sb, "%s %s %s", checker_sourcefile, input_sourcefile, output_sourcefile);
-    freopen("/dev/null", "w", stderr);
+    if (freopen("/dev/null", "w", stderr) == NULL)
+        errExit("Can not redirect stderr");
     int pipe1[2], pipe2[2];
     pipe(pipe1);
     pipe(pipe2);
