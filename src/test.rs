@@ -8,10 +8,10 @@ use std::fs::read_to_string;
 fn produce(brokers: &str, topic_name: &str, uid: i32) {
     let mut buf = BytesMut::with_capacity(1024);
 
-    let cpp = read_to_string("./test/binary_search/sol.cpp").unwrap();
-    buf.put("/home/rinne/Sphinx-Core/test/bs.toml");
-    // buf.put("/home/rinne/Sphinx-Core/test/sb.toml");
-    // let cpp = read_to_string("./test/a+b/Main.cpp").unwrap();
+    // let cpp = read_to_string("./test/binary_search/sol.cpp").unwrap();
+    // buf.put("/home/rinne/Sphinx-Core/test/bs.toml");
+    buf.put("/home/rinne/Sphinx-Core/test/sb.toml");
+    let cpp = read_to_string("./test/a+b/Main.cpp").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
         .set("produce.offset.report", "true")

@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
         else if (status_code == SIGXFSZ)
             goodExit("Output Limit Exceeded", timecost / 1000, result.ru_maxrss);
         else if (result.ru_maxrss * 1024 > memorylimit)
-            goodExit("Memory Limit Exceeded", timecost / 1000, result.ru_maxrss);
+            goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit/1024);
         else if (status_code != 0)
             goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
         int checker_statuscode = system(checker_arguments);

@@ -12,7 +12,7 @@ use crate::SphinxCore::Language::language;
 use futures::stream::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*};
 use SphinxCore::Config;
-
+use SphinxCore::Env::*;
 #[cfg(test)]
 mod test;
 
@@ -69,25 +69,50 @@ fn main() {
                         }
                     }
                     .to_string();
+
                     let headers = m.headers().unwrap();
                     assert_eq!(headers.count(), 3);
-
-                    let path: String =
-                        String::from_utf8_lossy(headers.get(0).unwrap().1).to_string();
+                    // for i in 0..3 {
+                    //     println!(
+                    //         "{:?} {:?}",
+                    //         headers.get(i).unwrap().0,
+                    //         headers.get(i).unwrap().1
+                    //     );
+                    // }
+                    let path: String = format!(
+                        "{}/{}",
+                        PAN_DIR,
+                        String::from_utf8_lossy(headers.get(0).unwrap().1)
+                    );
 
                     let lang = language::from(get_number(headers.get(1).unwrap().1));
 
-                    let uid: u64 = get_number(headers.get(1).unwrap().1);
-                    let conf = Config::Config::read(&path);
-                    let ref_sum = &sum;
-                    s.spawn(move |_| {
-                        while *ref_sum.read().unwrap() > 40 {
-                            thread::sleep(time::Duration::from_millis(100));
-                        }
-                        *ref_sum.write().unwrap() += 1;
-                        SphinxCore::Run::Run(uid, lang, conf, payload);
-                        *ref_sum.write().unwrap() -= 1;
-                    });
+                    let uid: u64 = get_number(headers.get(2).unwrap().1);
+                    let _conf = Config::Config::read(&format!("{}/problem-config.toml", path));
+                    if let Ok(conf) = _conf {
+                        let ref_sum = &sum;
+                        println!("{}", payload);
+                        println!("{} {} ", path, uid);
+                        s.spawn(move |_| {
+                            while *ref_sum.read().unwrap() > 20 {
+                                thread::sleep(time::Duration::from_millis(100));
+                            }
+                            *ref_sum.write().unwrap() += 1;
+                            SphinxCore::Run::Run(uid, lang, conf, payload, &path);
+                            *ref_sum.write().unwrap() -= 1;
+                        });
+                    } else {
+                        println!("File Not Found,{:?}", _conf);
+                        SphinxCore::Update::UpdateRealTimeInfo(
+                            "SYSTEM ERROR",
+                            0,
+                            0,
+                            uid,
+                            0,
+                            0,
+                            "File Not Found",
+                        )
+                    }
                     consumer.commit_message(&m, CommitMode::Async).unwrap();
                 }
             };

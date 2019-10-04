@@ -20,6 +20,7 @@ pub fn CopyFiles(
     Code: String,
     JudgeOpt: &Config::Config,
     lang: language,
+    base_url: &str,
 ) -> Result<(), String> {
     // Write Code into Temp Dir
     let dir_path = format!("{}/{}", WORK_DIR, uid);
@@ -46,11 +47,16 @@ pub fn CopyFiles(
         &mut File::open(&code_path).unwrap(),
     )
     .unwrap();
-    a.append_file(
-        "judger",
-        &mut File::open(&format!("{}/{}", PAN_DIR, JudgeOpt.spj_path)).unwrap(),
-    )
-    .unwrap();
+    if JudgeOpt.spj == NORMAL_JUDGE {
+        a.append_file("judger", &mut File::open(&JURY).unwrap())
+            .unwrap();
+    } else {
+        a.append_file(
+            "judger",
+            &mut File::open(&format!("{}/{}", base_url, JudgeOpt.spj_path)).unwrap(),
+        )
+        .unwrap();
+    }
     if JudgeOpt.spj != INTERACTIVE_JUDGE {
         a.append_file("core", &mut File::open(CORE1).unwrap())
             .unwrap();
@@ -65,9 +71,15 @@ pub fn CopyFiles(
     Ok(())
 }
 
-pub fn Run(SubmissionID: u64, lang: language, JudgeOpt: Config::Config, Code: String) {
+pub fn Run(
+    SubmissionID: u64,
+    lang: language,
+    JudgeOpt: Config::Config,
+    Code: String,
+    base_url: &str,
+) {
     let docker = Docker::connect_with_defaults().unwrap();
-    let ContainerId = InitDocker(&docker);
+    let ContainerId = InitDocker(&docker, base_url);
     match CopyFiles(
         &docker,
         &ContainerId,
@@ -75,6 +87,7 @@ pub fn Run(SubmissionID: u64, lang: language, JudgeOpt: Config::Config, Code: St
         Code,
         &JudgeOpt,
         lang.clone(),
+        base_url,
     ) {
         Ok(_) => {
             if lang.compile() {
@@ -84,7 +97,14 @@ pub fn Run(SubmissionID: u64, lang: language, JudgeOpt: Config::Config, Code: St
                     return;
                 }
             }
-            Judge(&docker, &ContainerId, SubmissionID, &JudgeOpt, lang.clone());
+            Judge(
+                &docker,
+                &ContainerId,
+                SubmissionID,
+                &JudgeOpt,
+                lang.clone(),
+                base_url,
+            );
         }
         Err(T) => {
             UpdateRealTimeInfo("COMPILE ERROR", 0, 0, SubmissionID, 0, 0, &T);
@@ -95,12 +115,12 @@ pub fn Run(SubmissionID: u64, lang: language, JudgeOpt: Config::Config, Code: St
         .unwrap();
 }
 
-fn InitDocker(docker: &Docker) -> String {
+fn InitDocker(docker: &Docker, base_url: &str) -> String {
     let output = Command::new("docker")
         .arg("create")
         .arg("--interactive")
         .arg("-v")
-        .arg(format!("{}:/data", PAN_DIR))
+        .arg(format!("{}:/data", base_url))
         .arg("--tty")
         .arg("--cpu-quota")
         .arg("100000")

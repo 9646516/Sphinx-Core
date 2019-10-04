@@ -7,26 +7,10 @@ clean:
 build:
 	mkdir -p /home/rinne/Sphinx/code
 	mkdir -p /home/rinne/Sphinx/core
-	mkdir -p /home/rinne/Sphinx/Pan
-
-	mkdir -p /home/rinne/Sphinx/Pan/1
-	echo "1 2" > /home/rinne/Sphinx/Pan/1/1.in
-	echo "3" > /home/rinne/Sphinx/Pan/1/1.out
-	echo "10 20" > /home/rinne/Sphinx/Pan/1/2.in
-	echo "30" > /home/rinne/Sphinx/Pan/1/2.out
-	echo "100 200" > /home/rinne/Sphinx/Pan/1/3.in
-	echo "300" > /home/rinne/Sphinx/Pan/1/3.out
-	
-	mkdir -p /home/rinne/Sphinx/Pan/2
-	echo "300" > /home/rinne/Sphinx/Pan/2/1.in
-	echo "500" > /home/rinne/Sphinx/Pan/2/2.in
-	echo "700" > /home/rinne/Sphinx/Pan/2/3.in
-	sudo chmod -R 770 /home/rinne/Sphinx/Pan/
 
 	gcc Core.c -o /home/rinne/Sphinx/core/core -lpthread -O2 -Wall
 	gcc Core2.c -o /home/rinne/Sphinx/core/core2 -lpthread -O2 -Wall
-	g++ Jury.cpp -o /home/rinne/Sphinx/Pan/Jury -O2 -Wall -std=c++17
-	g++ test/binary_search/judge.cpp -o /home/rinne/Sphinx/Pan/2/xjb -O2 -Wall -std=c++17
+	g++ Jury.cpp -o /home/rinne/Sphinx/core/Jury -O2 -Wall -std=c++17
 
 RunTest:
 	cargo test --release -- --nocapture

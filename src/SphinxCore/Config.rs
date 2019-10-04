@@ -19,8 +19,13 @@ pub struct Task {
     pub score: u64,
 }
 impl Config {
-    pub fn read(path: &str) -> Config {
-        let file: toml::Value = read_to_string(path).unwrap().parse().unwrap();
+    pub fn read(path: &str) -> Result<Config, String> {
+        let jb = read_to_string(path);
+        match jb {
+            Ok(_) => {}
+            Err(T) => return Err(T.to_string()),
+        }
+        let file: toml::Value = jb.unwrap().parse().unwrap();
         let judge = file.get("judge").unwrap();
         let judge_type = judge
             .get("judge-type")
@@ -47,11 +52,11 @@ impl Config {
         } else {
             Env::JURY.to_owned()
         };
-        Config {
+        Ok(Config {
             judge_type,
             tasks,
             spj: enable,
             spj_path,
-        }
+        })
     }
 }

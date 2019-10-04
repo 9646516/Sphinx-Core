@@ -114,6 +114,7 @@ pub fn Judge(
     uid: u64,
     JudgeOpt: &Config::Config,
     lang: language,
+    base_url: &str,
 ) {
     let acm = JudgeOpt.judge_type == "acm";
     let is_interactive = JudgeOpt.spj == INTERACTIVE_JUDGE;
@@ -124,14 +125,12 @@ pub fn Judge(
     if acm {
         for i in JudgeOpt.tasks.iter() {
             task_id += 1;
-            let input = get_data(&format!("{}/{}", PAN_DIR, i.input), "in");
+            let input = get_data(&format!("{}/{}", base_url, i.input), "in");
             let output = if is_interactive {
                 Vec::new()
             } else {
-                get_data(&format!("{}/{}", PAN_DIR, i.output), "out")
+                get_data(&format!("{}/{}", base_url, i.output), "out")
             };
-            println!("{:?}", input);
-            println!("{:?}", output);
             data_sum += input.len() as u32;
             if !is_interactive && input != output {
                 UpdateRealTimeInfo("DATA INVALID", 0, 0, uid, 0, 0, "input output dismatch");
@@ -173,11 +172,11 @@ pub fn Judge(
         let mut res = "ACCEPTED".to_owned();
         for i in JudgeOpt.tasks.iter() {
             task_id += 1;
-            let input = get_data(&format!("{}/{}", PAN_DIR, i.input), "in");
+            let input = get_data(&format!("{}/{}", base_url, i.input), "in");
             let output = if is_interactive {
                 Vec::new()
             } else {
-                get_data(&format!("{}/{}", PAN_DIR, i.output), "out")
+                get_data(&format!("{}/{}", base_url, i.output), "out")
             };
             data_sum += input.len() as u32;
             if !is_interactive && input != output {

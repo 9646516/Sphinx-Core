@@ -66,8 +66,10 @@ int main(int argc, char *argv[]) {
     if (freopen("/dev/null", "w", stderr) == NULL)
         errExit("Can not redirect stderr");
     int pipe1[2], pipe2[2];
-    pipe(pipe1);
-    pipe(pipe2);
+    if (!pipe(pipe1))
+        errExit("Failed to make pipe");
+    if (!pipe(pipe2))
+        errExit("Failed to make pipe");
     __pid_t pid2;
     pid = fork();
     if (pid > 0) {
@@ -92,7 +94,7 @@ int main(int argc, char *argv[]) {
             else if (status_code == SIGXFSZ)
                 goodExit("Output Limit Exceeded", timecost / 1000, result.ru_maxrss);
             else if (result.ru_maxrss * 1024 > memorylimit)
-                goodExit("Memory Limit Exceeded", timecost / 1000, result.ru_maxrss);
+                goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit/1024);
             else if (status_code != 0)
                 goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
 
@@ -100,7 +102,9 @@ int main(int argc, char *argv[]) {
             if (fp == NULL) {
                 errExit("Checker error");
             } else {
-                fgets(sb, 1024, fp);
+                if (!fgets(sb, 1024, fp)) {
+                    errExit("Can not get ans");
+                }
                 goodExit(strncmp(sb, "Accepted", 8) == 0 ? "Accepted" : "Wrong Answer", timecost / 1000, result.ru_maxrss);
             }
         } else if (pid2 == 0) { //测评鸡
@@ -111,7 +115,8 @@ int main(int argc, char *argv[]) {
     } else if (pid == 0) { //被测程序
         dup2(pipe1[1], STDOUT_FILENO);
         dup2(pipe2[0], STDIN_FILENO);
-        setuid(judge_user);
+        if (!setuid(judge_user))
+            errExit("Can not setuid");
         set_limit(RLIMIT_CPU, (timelimit + 999) / 1000, 1);
         set_limit(RLIMIT_DATA, memorylimit, 0);
         set_limit(RLIMIT_FSIZE, outputlimit, 0);
