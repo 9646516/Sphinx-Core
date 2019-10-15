@@ -1,4 +1,3 @@
-use super::SphinxCore::Config;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -7,12 +6,29 @@ use std::process::Command;
 
 use dockworker::Docker;
 
-use super::tar::Builder;
-use super::Compiler::{CompileStatus, Compiler};
+use super::Compiler::{Compiler, CompileStatus};
 use super::Env::*;
 use super::Judge::Judge;
 use super::Language::language;
+use super::SphinxCore::Config;
+use super::tar::Builder;
 use super::Update::UpdateRealTimeInfo;
+
+pub fn gen_spj(source: &str, target: &str) {
+    let output = Command::new("g++")
+        .arg(source)
+        .arg("-o")
+        .arg(target)
+        .arg("-std=c++17")
+        .arg("-I")
+        .arg(INCLUDE_PATH)
+        .arg("-O2")
+        .output()
+        .expect(&format!("gen spj from {} to {} failed", source, target));
+    let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
+    println!("{}", stdout.to_string());
+}
+
 pub fn CopyFiles(
     docker: &Docker,
     ContainerId: &str,
@@ -46,17 +62,19 @@ pub fn CopyFiles(
         format!("Main.{}", lang.extension()),
         &mut File::open(&code_path).unwrap(),
     )
-    .unwrap();
-    if JudgeOpt.spj == NORMAL_JUDGE {
-        a.append_file("judger", &mut File::open(&JURY).unwrap())
-            .unwrap();
-    } else {
-        a.append_file(
-            "judger",
-            &mut File::open(&format!("{}/{}", base_url, JudgeOpt.spj_path)).unwrap(),
-        )
         .unwrap();
+    let jury_src = format!("{}/{}/jury", WORK_DIR, uid);
+    if JudgeOpt.spj == NORMAL_JUDGE {
+        gen_spj(&JURY, &jury_src);
+    } else {
+        gen_spj(&JURY, &format!("{}/{}", base_url, JudgeOpt.spj_path));
     }
+    a.append_file(
+        "judger",
+        &mut File::open(&jury_src).unwrap(),
+    )
+        .unwrap();
+
     if JudgeOpt.spj != INTERACTIVE_JUDGE {
         a.append_file("core", &mut File::open(CORE1).unwrap())
             .unwrap();
