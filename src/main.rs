@@ -10,7 +10,7 @@ use std::{thread, time};
 
 use crate::SphinxCore::Language::language;
 use futures::stream::*;
-use rdkafka::{client::*, config::*, consumer::*, message::*};
+use rdkafka::{config::*, consumer::*, message::*};
 use SphinxCore::Config;
 use SphinxCore::Env::*;
 #[cfg(test)]
@@ -92,6 +92,7 @@ fn main() {
                             *ref_sum.write().unwrap() += 1;
                             SphinxCore::Run::Run(uid, lang, conf, payload, &path);
                             *ref_sum.write().unwrap() -= 1;
+                            // consumer.commit_message(&m, CommitMode::Sync).unwrap();
                         });
                     } else {
                         println!("File Not Found,{:?}", _conf);
@@ -105,7 +106,6 @@ fn main() {
                             "File Not Found",
                         )
                     }
-                    consumer.commit_message(&m, CommitMode::Async).unwrap();
                 }
             };
         }

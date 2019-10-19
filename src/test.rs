@@ -10,7 +10,7 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
 
     // let cpp = read_to_string("./test/binary_search/sol.cpp").unwrap();
     // buf.put("/home/rinne/Sphinx-Core/test/bs.toml");
-    buf.put("/home/rinne/Sphinx-Core/test/sb.toml");
+    buf.put("1");
     let cpp = read_to_string("./test/a+b/Main.cpp").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)

@@ -7,10 +7,10 @@ clean:
 build:
 	mkdir -p /home/rinne/Sphinx/code
 	mkdir -p /home/rinne/Sphinx/core
-    cp -r testlib /home/rinne/Sphinx/include
+	cp -r testlib /home/rinne/Sphinx/include
 	gcc Core.c -o /home/rinne/Sphinx/core/core -lpthread -O2 -Wall
 	gcc Core2.c -o /home/rinne/Sphinx/core/core2 -lpthread -O2 -Wall
-	g++ Jury.cpp -o /home/rinne/Sphinx/core/Jury -O2 -Wall -std=c++17
+	cp Jury.cpp /home/rinne/Sphinx/core/Jury.cpp
 
 RunTest:
 	cargo test --release -- --nocapture
