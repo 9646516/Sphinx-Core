@@ -18,13 +18,6 @@ mod test;
 
 pub mod SphinxCore;
 
-struct CustomContext;
-
-impl ClientContext for CustomContext {}
-
-impl ConsumerContext for CustomContext {}
-
-type LoggingConsumer = StreamConsumer<CustomContext>;
 fn get_number(V: &[u8]) -> u64 {
     let mut ret: u64 = 0;
     for i in V.iter() {
@@ -37,16 +30,15 @@ fn main() {
     let brokers = "localhost:9092";
     let group_id = "Q";
     let sum = RwLock::new(1usize);
-    let context = CustomContext;
 
-    let consumer: LoggingConsumer = ClientConfig::new()
+    let consumer: StreamConsumer = ClientConfig::new()
         .set("group.id", group_id)
         .set("bootstrap.servers", brokers)
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", "6000")
-        .set("enable.auto.commit", "false")
+        .set("enable.auto.commit", "true")
         .set_log_level(RDKafkaLogLevel::Debug)
-        .create_with_context(context)
+        .create()
         .expect("Consumer creation failed");
 
     consumer
@@ -56,6 +48,9 @@ fn main() {
     let message_stream = consumer.start();
     crossbeam::thread::scope(|s| {
         for message in message_stream.wait() {
+            while *sum.read().unwrap() > 20 {
+                thread::sleep(time::Duration::from_millis(100));
+            }
             match message {
                 Err(_) => println!("Error while reading from stream."),
                 Ok(Err(e)) => println!("Kafka error: {}", e),
@@ -94,9 +89,6 @@ fn main() {
                         println!("{}", payload);
                         println!("{} {} ", path, uid);
                         s.spawn(move |_| {
-                            while *ref_sum.read().unwrap() > 20 {
-                                thread::sleep(time::Duration::from_millis(100));
-                            }
                             *ref_sum.write().unwrap() += 1;
                             SphinxCore::Run::Run(uid, lang, conf, payload, &path);
                             *ref_sum.write().unwrap() -= 1;
