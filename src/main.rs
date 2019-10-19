@@ -56,6 +56,9 @@ fn main() {
     let message_stream = consumer.start();
     crossbeam::thread::scope(|s| {
         for message in message_stream.wait() {
+            while *sum.read().unwrap() > 20 {
+                thread::sleep(time::Duration::from_millis(100));
+            }
             match message {
                 Err(_) => println!("Error while reading from stream."),
                 Ok(Err(e)) => println!("Kafka error: {}", e),
@@ -94,9 +97,6 @@ fn main() {
                         println!("{}", payload);
                         println!("{} {} ", path, uid);
                         s.spawn(move |_| {
-                            while *ref_sum.read().unwrap() > 20 {
-                                thread::sleep(time::Duration::from_millis(100));
-                            }
                             *ref_sum.write().unwrap() += 1;
                             SphinxCore::Run::Run(uid, lang, conf, payload, &path);
                             *ref_sum.write().unwrap() -= 1;
