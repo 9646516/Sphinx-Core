@@ -1,8 +1,8 @@
-extern crate sphinx;
+extern crate sphinx_core;
 
 #[cfg(test)]
 mod test {
-    use sphinx::proto::{ProblemConfig, ProblemConfigOptions};
+    use sphinx_core::{ProblemConfig, ProblemConfigOptions};
 
     #[test]
     fn test_problem_config() {
@@ -10,7 +10,7 @@ mod test {
             spj_path: "123".to_owned(),
         };
 
-        let cfg = ProblemConfig::read("test/bs.toml", &option).unwrap();
+        let cfg = ProblemConfig::read("examples/bs.toml", &option).unwrap();
 
         assert_eq!("oi", cfg.judge_type);
     }

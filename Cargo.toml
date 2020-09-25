@@ -1,23 +1,25 @@
 [package]
 name = "Sphinx-Core"
 version = "1.0.0"
-authors = ["9646516 <zyq855@gmail.com>"]
+authors = ["9646516 <zyq855@gmail.com>", "Myriad-Dreamin <camiyoru@gmail.com>"]
 edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 name = "sphinx"
 path = "src/lib.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = [
+    "sphinx-core",
+    "sphinx-core-docker-provider"
+]
 
 [dependencies]
-dockworker = "0.0.15"
-json = "0.12.0"
+sphinx-core = { path = "sphinx-core" }
+sphinx-core-docker-provider = { path = "sphinx-core-docker-provider" }
 crossbeam = "0.7.2"
-# rdkafka-sys = "2.1.0"
+bytes = "0.4.12"
 tokio = { version = "0.2", features = ["full"] }
 rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }
-futures = "0.3"
-tar = "0.4.26"
-bytes = "0.4.12"
-toml = "0.5.3"

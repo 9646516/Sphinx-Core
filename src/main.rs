@@ -1,21 +1,15 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
-extern crate futures;
-extern crate rdkafka;
-// extern crate rdkafka_sys;
-extern crate sphinx;
-extern crate tar;
 use crossbeam;
 use std::sync::RwLock;
 use std::{thread, time};
-
-use sphinx::core::language::Language;
-use rdkafka::{client::*, config::*, consumer::*, message::*};
-use sphinx::proto::{ProblemConfig, ProblemConfigOptions};
-use sphinx::core::env::*;
-use sphinx::client::oj_server::kafka::update::update_real_time_info;
-use futures::{StreamExt};
-use sphinx::core::run::run;
+use rdkafka::config::RDKafkaLogLevel;
+use rdkafka::{ClientConfig, ClientContext, Message};
+use rdkafka::consumer::{ConsumerContext, StreamConsumer, Consumer, CommitMode};
+use sphinx::env::{PAN_DIR, JURY};
+use tokio::stream::StreamExt;
+use rdkafka::message::Headers;
+use sphinx_core::{Language, ProblemConfigOptions, ProblemConfig};
 
 
 struct CustomContext;
@@ -96,7 +90,7 @@ fn main() {
 
                     let uid: u64 = get_number(headers.get(2).unwrap().1);
                     let options = ProblemConfigOptions {
-                        spj_path: crate::JURY.to_owned(),
+                        spj_path: JURY.to_owned(),
                     };
 
                     let _conf = ProblemConfig::read(&format!("{}/problem-config.toml", path), &options);
@@ -106,12 +100,12 @@ fn main() {
                         println!("{} {} ", path, uid);
                         s.spawn(move |_| {
                             *ref_sum.write().unwrap() += 1;
-                            run(uid, lang, conf, payload, &path);
+                            sphinx_core_docker::run(uid, lang, conf, payload, &path);
                             *ref_sum.write().unwrap() -= 1;
                         });
                     } else {
                         println!("File Not Found,{:?}", _conf);
-                        update_real_time_info(
+                        sphinx_core_docker::client::oj_server::kafka::update::update_real_time_info(
                             "SYSTEM ERROR",
                             0,
                             0,

@@ -1,95 +1,121 @@
 
-use dockworker::Docker;
+extern crate tar;
+
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 
-use super::language::Language;
-use super::core::env::*;
-use crate::proto::{Task, ProblemConfig};
+use dockworker::Docker;
+
+use tar::Builder;
+use super::env::*;
 use crate::client::oj_server::kafka::update::update_real_time_info;
-use crate::client::docker::run_cmd;
+use sphinx_core::{ProblemConfig, Language, CompileStatus, Compiler, JudgeStatus, Judge};
+use crate::utils::init_docker;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum JudgeStatus {
-    Accepted,
-    WrongAnswer,
-    TimeLimitedError,
-    RuntimeError,
-    MemoryLimitedError,
-    OutputLimitedError,
-    CompileError,
-    AssertFailed,
-    UnknownError,
-}
-
-impl JudgeStatus {
-    pub fn to_string(&self) -> &str {
-        match self {
-            JudgeStatus::Accepted => "ACCEPTED",
-            JudgeStatus::WrongAnswer => "WRONG ANSWER",
-            JudgeStatus::TimeLimitedError => "TIME LIMITED ERROR",
-            JudgeStatus::RuntimeError => "RUNTIME ERROR",
-            JudgeStatus::MemoryLimitedError => "MEMORY LIMITED ERROR",
-            JudgeStatus::OutputLimitedError => "OUTPUT LIMITED ERROR",
-            JudgeStatus::CompileError => "COMPILE ERROR",
-            JudgeStatus::AssertFailed => "ASSERT FAILED",
-            JudgeStatus::UnknownError => "UNKNOWN ERROR",
-        }
+pub fn copy_files(
+    docker: &Docker,
+    container_id: &str,
+    uid: u64,
+    code: String,
+    judge_opt: &ProblemConfig,
+    lang: Language,
+    base_url: &str,
+) -> Result<(), String> {
+    // Write code into Temp Dir
+    let dir_path = format!("{}/{}", WORK_DIR, uid);
+    let pdir = Path::new(&dir_path);
+    if !pdir.exists() && fs::create_dir_all(pdir).is_err() {
+        return Err("make dir failed".to_string());
     }
+    let code_path = format!("{}/{}/Main.{}", WORK_DIR, uid, lang.extension());
+    let file = File::create(&code_path);
+    if file.is_err() {
+        return Err("make file failed".to_string());
+    }
+    match file.unwrap().write_all(code.as_bytes()) {
+        Ok(_) => {}
+        Err(err) => return Err(format!("write file failed,{}", err)),
+    };
+    // Copy Jury , code and Core into Docker
+    let tar_path = format!("{}/{}/foo.tar", WORK_DIR, uid);
+    let file = File::create(&tar_path).unwrap();
+    let mut a = Builder::new(file);
+
+    a.append_file(
+        format!("Main.{}", lang.extension()),
+        &mut File::open(&code_path).unwrap(),
+    )
+    .unwrap();
+    if judge_opt.spj == NORMAL_JUDGE {
+        a.append_file("judger", &mut File::open(&JURY).unwrap())
+            .unwrap();
+    } else {
+        a.append_file(
+            "judger",
+            &mut File::open(&format!("{}/{}", base_url, judge_opt.spj_path)).unwrap(),
+        )
+        .unwrap();
+    }
+    if judge_opt.spj != INTERACTIVE_JUDGE {
+        a.append_file("core", &mut File::open(CORE1).unwrap())
+            .unwrap();
+    } else {
+        a.append_file("core", &mut File::open(CORE2).unwrap())
+            .unwrap();
+    }
+
+    docker
+        .put_file(container_id, &Path::new(&tar_path), Path::new("/tmp"), true)
+        .unwrap();
+    Ok(())
 }
 
 pub fn run(
-    docker: &Docker,
-    container_id: &str,
-    task: &Task,
-    input: &str,
-    output: &str,
+    submission_id: u64,
     lang: Language,
-    core: bool,
-) -> (JudgeStatus, u64, u64) {
-    //generate command
-    let run = lang.running_command("/tmp".to_string());
-    let inputfile = format!("/data/{}/{}.in", task.input, input);
-    let cmd = if !core {
-        let outputfile = format!("/data/{}/{}.out", task.input, output);
+    judge_opt: ProblemConfig,
+    code: String,
+    base_url: &str,
+) {
+    let docker = Docker::connect_with_defaults().unwrap();
+    let container_id = init_docker(&docker, base_url);
+    let compiler = crate::Compiler { docker: &docker };
 
-        format!(
-            "/tmp/core {} {} {} {} {} \"/tmp/res\" {} {} \"/tmp/judger\"",
-            task.time, task.mem, 256_000_000, 256_000_000, inputfile, outputfile, run
-        )
-    } else {
-        format!(
-            "/tmp/core {} {} {} {} {} \"/tmp/res\" {} \"/tmp/judger\"",
-            task.time, task.mem, 256_000_000, 256_000_000, inputfile, run
-        )
-    };
-    //exec
-    println!("{}", cmd);
-    let (status, info) = run_cmd(docker, container_id, cmd);
-    println!("{} {}", status, info);
-    let res = json::parse(&info).unwrap();
-    if res["result"].as_str().unwrap() == "Judger Error" {
-        return (JudgeStatus::UnknownError, 0, 0);
+    match copy_files(
+        &docker,
+        &container_id,
+        submission_id,
+        code,
+        &judge_opt,
+        lang.clone(),
+        base_url,
+    ) {
+        Ok(_) => {
+            if lang.compile() {
+                let res = compiler.compile(&container_id, "/tmp".to_string(), lang.clone());
+                if res.status == CompileStatus::FAILED {
+                    update_real_time_info("COMPILE ERROR", 0, 0, submission_id, 0, 0, &res.info);
+                    return;
+                }
+            }
+            judge(
+                &docker,
+                &container_id,
+                submission_id,
+                &judge_opt,
+                lang.clone(),
+                base_url,
+            );
+        }
+        Err(err) => {
+            update_real_time_info("COMPILE ERROR", 0, 0, submission_id, 0, 0, &err);
+        }
     }
-    let time = res["time_cost"].as_u64().unwrap();
-    let mem = res["memory_cost"].as_u64().unwrap();
-    if status == 0 {
-        (
-            match res["result"].as_str().unwrap() {
-                "Runtime Error" => JudgeStatus::RuntimeError,
-                "Time Limit Exceeded" => JudgeStatus::TimeLimitedError,
-                "Memory Limit Exceeded" => JudgeStatus::MemoryLimitedError,
-                "Output Limit Exceeded" => JudgeStatus::OutputLimitedError,
-                "Accepted" => JudgeStatus::Accepted,
-                "Wrong Answer" => JudgeStatus::WrongAnswer,
-                "Assert Failed" => JudgeStatus::AssertFailed,
-                _ => JudgeStatus::UnknownError,
-            },
-            time,
-            mem,
-        )
-    } else {
-        (JudgeStatus::UnknownError, time, mem)
-    }
+    docker
+        .remove_container(&container_id, Some(false), Some(true), Some(false))
+        .unwrap();
 }
 
 fn get_data(dir: &str, suf: &str) -> Vec<String> {
@@ -109,6 +135,7 @@ fn get_data(dir: &str, suf: &str) -> Vec<String> {
     ret.sort();
     ret
 }
+
 pub fn judge(
     docker: &Docker,
     container_id: &str,
@@ -117,6 +144,8 @@ pub fn judge(
     lang: Language,
     base_url: &str,
 ) {
+    let inner_judge = crate::Judge { docker: &docker, container_id: &container_id};
+
     let acm = judge_opt.judge_type == "acm";
     let is_interactive = judge_opt.spj == INTERACTIVE_JUDGE;
     let mut last: u32 = 0;
@@ -138,9 +167,7 @@ pub fn judge(
                 return;
             }
             for j in 0..input.len() {
-                let (status, _t, _m) = run(
-                    docker,
-                    container_id,
+                let (status, _t, _m) = inner_judge.judge(
                     i,
                     &input[j],
                     if is_interactive { "" } else { &output[j] },
@@ -185,9 +212,7 @@ pub fn judge(
                 return;
             }
             for j in 0..input.len() {
-                let (status, _t, _m) = run(
-                    docker,
-                    container_id,
+                let (status, _t, _m) = inner_judge.judge(
                     i,
                     &input[j],
                     if is_interactive { "" } else { &output[j] },
