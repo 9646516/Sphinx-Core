@@ -4,15 +4,20 @@ version = "1.0.0"
 authors = ["9646516 <zyq855@gmail.com>"]
 edition = "2018"
 
+[lib]
+name = "sphinx"
+path = "src/lib.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 dockworker = "0.0.15"
 json = "0.12.0"
 crossbeam = "0.7.2"
-rdkafka = "0.21.0"
-futures = "0.1.29"
-rdkafka-sys = "1.0.0"
+# rdkafka-sys = "2.1.0"
+tokio = { version = "0.2", features = ["full"] }
+rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }
+futures = "0.3"
 tar = "0.4.26"
 bytes = "0.4.12"
 toml = "0.5.3"

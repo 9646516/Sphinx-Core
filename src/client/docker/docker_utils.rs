@@ -2,7 +2,7 @@ use std::io::Read;
 
 use dockworker::{CreateExecOptions, Docker, StartExecOptions};
 
-pub fn RunCmd(docker: &Docker, id: &str, cmd: String) -> (u32, String) {
+pub fn run_cmd(docker: &Docker, id: &str, cmd: String) -> (u32, String) {
     let mut buf: Vec<u8> = Vec::new();
     let idx = docker
         .exec_container(

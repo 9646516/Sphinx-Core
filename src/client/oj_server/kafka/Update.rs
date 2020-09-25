@@ -2,12 +2,14 @@ extern crate futures;
 extern crate rdkafka;
 
 use rdkafka::{config::*, message::*, producer::*};
+use self::rdkafka::util::Timeout;
+use std::time::Duration;
 
-pub fn UpdateRealTimeInfo(
+pub fn update_real_time_info(
     status: &str,
     mem: u64,
     time: u64,
-    SubmissionID: u64,
+    submission_id: u64,
     last: u32,
     score: u64,
     info: &str,
@@ -20,7 +22,8 @@ pub fn UpdateRealTimeInfo(
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
-    producer.send(
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(producer.send(
         FutureRecord::to(topic_name)
             .payload(status)
             .key("")
@@ -28,15 +31,15 @@ pub fn UpdateRealTimeInfo(
                 OwnedHeaders::new()
                     .add("mem", &format!("{}", mem))
                     .add("time", &format!("{}", time))
-                    .add("uid", &format!("{}", SubmissionID))
+                    .add("uid", &format!("{}", submission_id))
                     .add("last", &format!("{}", last))
                     .add("score", &format!("{}", score))
                     .add("info", info),
             ),
-        0,
-    );
+        Timeout::from(Duration::from_secs(10)),
+    )).unwrap();
     println!(
         "status:{} mem:{} time:{} uid:{} last:{} info:{} score:{}",
-        status, mem, time, SubmissionID, last, info, score
+        status, mem, time, submission_id, last, info, score
     );
 }

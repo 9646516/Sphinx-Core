@@ -1,4 +1,6 @@
-use super::SphinxCore::Config;
+
+extern crate tar;
+
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -7,22 +9,24 @@ use std::process::Command;
 
 use dockworker::Docker;
 
-use super::tar::Builder;
-use super::Compiler::{CompileStatus, Compiler};
-use super::Env::*;
-use super::Judge::Judge;
-use super::Language::language;
-use super::Update::UpdateRealTimeInfo;
-pub fn CopyFiles(
+use tar::Builder;
+use super::compiler::{CompileStatus, compiler};
+use super::env::*;
+use super::judge::judge;
+use super::language::Language;
+use crate::client::oj_server::kafka::update::update_real_time_info;
+use crate::proto::ProblemConfig;
+
+pub fn copy_files(
     docker: &Docker,
-    ContainerId: &str,
+    container_id: &str,
     uid: u64,
-    Code: String,
-    JudgeOpt: &Config::Config,
-    lang: language,
+    code: String,
+    judge_opt: &ProblemConfig,
+    lang: Language,
     base_url: &str,
 ) -> Result<(), String> {
-    // Write Code into Temp Dir
+    // Write code into Temp Dir
     let dir_path = format!("{}/{}", WORK_DIR, uid);
     let pdir = Path::new(&dir_path);
     if !pdir.exists() && fs::create_dir_all(pdir).is_err() {
@@ -33,13 +37,13 @@ pub fn CopyFiles(
     if file.is_err() {
         return Err("make file failed".to_string());
     }
-    match file.unwrap().write_all(Code.as_bytes()) {
+    match file.unwrap().write_all(code.as_bytes()) {
         Ok(_) => {}
-        Err(T) => return Err(format!("write file failed,{}", T)),
+        Err(err) => return Err(format!("write file failed,{}", err)),
     };
-    // Copy Jury , Code and Core into Docker
-    let TarPath = format!("{}/{}/foo.tar", WORK_DIR, uid);
-    let file = File::create(&TarPath).unwrap();
+    // Copy Jury , code and Core into Docker
+    let tar_path = format!("{}/{}/foo.tar", WORK_DIR, uid);
+    let file = File::create(&tar_path).unwrap();
     let mut a = Builder::new(file);
 
     a.append_file(
@@ -47,17 +51,17 @@ pub fn CopyFiles(
         &mut File::open(&code_path).unwrap(),
     )
     .unwrap();
-    if JudgeOpt.spj == NORMAL_JUDGE {
+    if judge_opt.spj == NORMAL_JUDGE {
         a.append_file("judger", &mut File::open(&JURY).unwrap())
             .unwrap();
     } else {
         a.append_file(
             "judger",
-            &mut File::open(&format!("{}/{}", base_url, JudgeOpt.spj_path)).unwrap(),
+            &mut File::open(&format!("{}/{}", base_url, judge_opt.spj_path)).unwrap(),
         )
         .unwrap();
     }
-    if JudgeOpt.spj != INTERACTIVE_JUDGE {
+    if judge_opt.spj != INTERACTIVE_JUDGE {
         a.append_file("core", &mut File::open(CORE1).unwrap())
             .unwrap();
     } else {
@@ -66,56 +70,56 @@ pub fn CopyFiles(
     }
 
     docker
-        .put_file(ContainerId, &Path::new(&TarPath), Path::new("/tmp"), true)
+        .put_file(container_id, &Path::new(&tar_path), Path::new("/tmp"), true)
         .unwrap();
     Ok(())
 }
 
-pub fn Run(
-    SubmissionID: u64,
-    lang: language,
-    JudgeOpt: Config::Config,
-    Code: String,
+pub fn run(
+    submission_id: u64,
+    lang: Language,
+    judge_opt: ProblemConfig,
+    code: String,
     base_url: &str,
 ) {
     let docker = Docker::connect_with_defaults().unwrap();
-    let ContainerId = InitDocker(&docker, base_url);
-    match CopyFiles(
+    let container_id = init_docker(&docker, base_url);
+    match copy_files(
         &docker,
-        &ContainerId,
-        SubmissionID,
-        Code,
-        &JudgeOpt,
+        &container_id,
+        submission_id,
+        code,
+        &judge_opt,
         lang.clone(),
         base_url,
     ) {
         Ok(_) => {
             if lang.compile() {
-                let res = Compiler(&docker, &ContainerId, "/tmp".to_string(), lang.clone());
+                let res = compiler(&docker, &container_id, "/tmp".to_string(), lang.clone());
                 if res.status == CompileStatus::FAILED {
-                    UpdateRealTimeInfo("COMPILE ERROR", 0, 0, SubmissionID, 0, 0, &res.info);
+                    update_real_time_info("COMPILE ERROR", 0, 0, submission_id, 0, 0, &res.info);
                     return;
                 }
             }
-            Judge(
+            judge(
                 &docker,
-                &ContainerId,
-                SubmissionID,
-                &JudgeOpt,
+                &container_id,
+                submission_id,
+                &judge_opt,
                 lang.clone(),
                 base_url,
             );
         }
-        Err(T) => {
-            UpdateRealTimeInfo("COMPILE ERROR", 0, 0, SubmissionID, 0, 0, &T);
+        Err(err) => {
+            update_real_time_info("COMPILE ERROR", 0, 0, submission_id, 0, 0, &err);
         }
     }
     docker
-        .remove_container(&ContainerId, Some(false), Some(true), Some(false))
+        .remove_container(&container_id, Some(false), Some(true), Some(false))
         .unwrap();
 }
 
-fn InitDocker(docker: &Docker, base_url: &str) -> String {
+fn init_docker(docker: &Docker, base_url: &str) -> String {
     let output = Command::new("docker")
         .arg("create")
         .arg("--interactive")

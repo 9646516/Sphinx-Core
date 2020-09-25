@@ -10,7 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 /*****************************************************************************
- * Run programs on Linux with resource limited.
+ * run programs on Linux with resource limited.
  * Based on setrlimit.(https://linux.die.net/man/2/setrlimit)
  * Author: Ke Shen
  * Modified By 9646516

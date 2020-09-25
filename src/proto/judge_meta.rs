@@ -1,8 +1,8 @@
-use super::Env;
 use std::fs::*;
 use toml;
+
 #[derive(Debug)]
-pub struct Config {
+pub struct ProblemConfig {
     pub judge_type: String,
     pub tasks: Vec<Task>,
     pub spj: u8,
@@ -18,12 +18,19 @@ pub struct Task {
     pub mem: u64,
     pub score: u64,
 }
-impl Config {
-    pub fn read(path: &str) -> Result<Config, String> {
+
+#[derive(Debug)]
+pub struct ProblemConfigOptions {
+    pub spj_path: String,
+}
+
+
+impl ProblemConfig {
+    pub fn read(path: &str, options: &ProblemConfigOptions) -> Result<ProblemConfig, String> {
         let jb = read_to_string(path);
         match jb {
             Ok(_) => {}
-            Err(T) => return Err(T.to_string()),
+            Err(err) => return Err(err.to_string()),
         }
         let file: toml::Value = jb.unwrap().parse().unwrap();
         let judge = file.get("judge").unwrap();
@@ -50,9 +57,9 @@ impl Config {
         let spj_path = if enable != 0 {
             spj.get("file-path").unwrap().as_str().unwrap().to_string()
         } else {
-            Env::JURY.to_owned()
+            options.spj_path.to_owned()
         };
-        Ok(Config {
+        Ok(ProblemConfig {
             judge_type,
             tasks,
             spj: enable,

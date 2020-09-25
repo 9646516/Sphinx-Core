@@ -2,8 +2,7 @@ use std::string::String;
 
 use dockworker::Docker;
 
-use super::DockerUtils;
-use super::Language::language;
+use super::language::Language;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum CompileStatus {
@@ -17,8 +16,8 @@ pub struct CompileResult {
     pub info: String,
 }
 
-pub fn Compiler(docker: &Docker, id: &str, source: String, lang: language) -> CompileResult {
-    let (code, info) = DockerUtils::RunCmd(
+pub fn compiler(docker: &Docker, id: &str, source: String, lang: Language) -> CompileResult {
+    let (code, info) = crate::client::docker::run_cmd(
         docker,
         id,
         format!("timeout 3s {}", lang.compile_command(source)),

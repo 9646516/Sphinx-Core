@@ -1,48 +1,49 @@
+
 use dockworker::Docker;
 use std::path::Path;
 
-use super::Config;
-use super::DockerUtils;
-use super::Language::language;
-use super::SphinxCore::Env::*;
-use super::Update::UpdateRealTimeInfo;
+use super::language::Language;
+use super::core::env::*;
+use crate::proto::{Task, ProblemConfig};
+use crate::client::oj_server::kafka::update::update_real_time_info;
+use crate::client::docker::run_cmd;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum JudgeStatus {
-    ACCEPTED,
-    WRONG_ANSWER,
-    TIME_LIMITED_ERROR,
-    RUNTIME_ERROR,
-    MEMORY_LIMITED_ERROR,
-    OUTPUT_LIMITED_ERROR,
-    COMPILE_ERROR,
-    ASSERT_FAILED,
-    UNKNOWN_ERROR,
+    Accepted,
+    WrongAnswer,
+    TimeLimitedError,
+    RuntimeError,
+    MemoryLimitedError,
+    OutputLimitedError,
+    CompileError,
+    AssertFailed,
+    UnknownError,
 }
 
 impl JudgeStatus {
     pub fn to_string(&self) -> &str {
         match self {
-            JudgeStatus::ACCEPTED => "ACCEPTED",
-            JudgeStatus::WRONG_ANSWER => "WRONG ANSWER",
-            JudgeStatus::TIME_LIMITED_ERROR => "TIME LIMITED ERROR",
-            JudgeStatus::RUNTIME_ERROR => "RUNTIME ERROR",
-            JudgeStatus::MEMORY_LIMITED_ERROR => "MEMORY LIMITED ERROR",
-            JudgeStatus::OUTPUT_LIMITED_ERROR => "OUTPUT LIMITED ERROR",
-            JudgeStatus::COMPILE_ERROR => "COMPILE ERROR",
-            JudgeStatus::ASSERT_FAILED => "ASSERT FAILED",
-            JudgeStatus::UNKNOWN_ERROR => "UNKNOWN ERROR",
+            JudgeStatus::Accepted => "ACCEPTED",
+            JudgeStatus::WrongAnswer => "WRONG ANSWER",
+            JudgeStatus::TimeLimitedError => "TIME LIMITED ERROR",
+            JudgeStatus::RuntimeError => "RUNTIME ERROR",
+            JudgeStatus::MemoryLimitedError => "MEMORY LIMITED ERROR",
+            JudgeStatus::OutputLimitedError => "OUTPUT LIMITED ERROR",
+            JudgeStatus::CompileError => "COMPILE ERROR",
+            JudgeStatus::AssertFailed => "ASSERT FAILED",
+            JudgeStatus::UnknownError => "UNKNOWN ERROR",
         }
     }
 }
 
-pub fn Run(
+pub fn run(
     docker: &Docker,
-    ContainerId: &str,
-    task: &Config::Task,
+    container_id: &str,
+    task: &Task,
     input: &str,
     output: &str,
-    lang: language,
+    lang: Language,
     core: bool,
 ) -> (JudgeStatus, u64, u64) {
     //generate command
@@ -63,31 +64,31 @@ pub fn Run(
     };
     //exec
     println!("{}", cmd);
-    let (status, info) = DockerUtils::RunCmd(docker, ContainerId, cmd);
+    let (status, info) = run_cmd(docker, container_id, cmd);
     println!("{} {}", status, info);
     let res = json::parse(&info).unwrap();
     if res["result"].as_str().unwrap() == "Judger Error" {
-        return (JudgeStatus::UNKNOWN_ERROR, 0, 0);
+        return (JudgeStatus::UnknownError, 0, 0);
     }
     let time = res["time_cost"].as_u64().unwrap();
     let mem = res["memory_cost"].as_u64().unwrap();
     if status == 0 {
         (
             match res["result"].as_str().unwrap() {
-                "Runtime Error" => JudgeStatus::RUNTIME_ERROR,
-                "Time Limit Exceeded" => JudgeStatus::TIME_LIMITED_ERROR,
-                "Memory Limit Exceeded" => JudgeStatus::MEMORY_LIMITED_ERROR,
-                "Output Limit Exceeded" => JudgeStatus::OUTPUT_LIMITED_ERROR,
-                "Accepted" => JudgeStatus::ACCEPTED,
-                "Wrong Answer" => JudgeStatus::WRONG_ANSWER,
-                "Assert Failed" => JudgeStatus::ASSERT_FAILED,
-                _ => JudgeStatus::UNKNOWN_ERROR,
+                "Runtime Error" => JudgeStatus::RuntimeError,
+                "Time Limit Exceeded" => JudgeStatus::TimeLimitedError,
+                "Memory Limit Exceeded" => JudgeStatus::MemoryLimitedError,
+                "Output Limit Exceeded" => JudgeStatus::OutputLimitedError,
+                "Accepted" => JudgeStatus::Accepted,
+                "Wrong Answer" => JudgeStatus::WrongAnswer,
+                "Assert Failed" => JudgeStatus::AssertFailed,
+                _ => JudgeStatus::UnknownError,
             },
             time,
             mem,
         )
     } else {
-        (JudgeStatus::UNKNOWN_ERROR, time, mem)
+        (JudgeStatus::UnknownError, time, mem)
     }
 }
 
@@ -108,22 +109,22 @@ fn get_data(dir: &str, suf: &str) -> Vec<String> {
     ret.sort();
     ret
 }
-pub fn Judge(
+pub fn judge(
     docker: &Docker,
-    ContainerId: &str,
+    container_id: &str,
     uid: u64,
-    JudgeOpt: &Config::Config,
-    lang: language,
+    judge_opt: &ProblemConfig,
+    lang: Language,
     base_url: &str,
 ) {
-    let acm = JudgeOpt.judge_type == "acm";
-    let is_interactive = JudgeOpt.spj == INTERACTIVE_JUDGE;
+    let acm = judge_opt.judge_type == "acm";
+    let is_interactive = judge_opt.spj == INTERACTIVE_JUDGE;
     let mut last: u32 = 0;
     let mut data_sum: u32 = 0;
 
     let mut task_id = 0;
     if acm {
-        for i in JudgeOpt.tasks.iter() {
+        for i in judge_opt.tasks.iter() {
             task_id += 1;
             let input = get_data(&format!("{}/{}", base_url, i.input), "in");
             let output = if is_interactive {
@@ -133,22 +134,22 @@ pub fn Judge(
             };
             data_sum += input.len() as u32;
             if !is_interactive && input != output {
-                UpdateRealTimeInfo("DATA INVALID", 0, 0, uid, 0, 0, "input output dismatch");
+                update_real_time_info("DATA INVALID", 0, 0, uid, 0, 0, "input output dismatch");
                 return;
             }
             for j in 0..input.len() {
-                let (status, _t, _m) = Run(
+                let (status, _t, _m) = run(
                     docker,
-                    ContainerId,
+                    container_id,
                     i,
                     &input[j],
                     if is_interactive { "" } else { &output[j] },
                     lang.clone(),
                     is_interactive,
                 );
-                if status == JudgeStatus::ACCEPTED {
-                    UpdateRealTimeInfo(
-                        if last == data_sum - 1 && JudgeOpt.tasks.len() == task_id {
+                if status == JudgeStatus::Accepted {
+                    update_real_time_info(
+                        if last == data_sum - 1 && judge_opt.tasks.len() == task_id {
                             "ACCEPTED"
                         } else {
                             "RUNNING"
@@ -162,7 +163,7 @@ pub fn Judge(
                     );
                     last += 1;
                 } else {
-                    UpdateRealTimeInfo(status.to_string(), _m, _t, uid, last, 0, "");
+                    update_real_time_info(status.to_string(), _m, _t, uid, last, 0, "");
                     return;
                 }
             }
@@ -170,7 +171,7 @@ pub fn Judge(
     } else {
         let mut score = 0;
         let mut res = "ACCEPTED".to_owned();
-        for i in JudgeOpt.tasks.iter() {
+        for i in judge_opt.tasks.iter() {
             task_id += 1;
             let input = get_data(&format!("{}/{}", base_url, i.input), "in");
             let output = if is_interactive {
@@ -180,26 +181,26 @@ pub fn Judge(
             };
             data_sum += input.len() as u32;
             if !is_interactive && input != output {
-                UpdateRealTimeInfo("DATA INVALID", 0, 0, uid, 0, 0, "input output dismatch");
+                update_real_time_info("DATA INVALID", 0, 0, uid, 0, 0, "input output dismatch");
                 return;
             }
             for j in 0..input.len() {
-                let (status, _t, _m) = Run(
+                let (status, _t, _m) = run(
                     docker,
-                    ContainerId,
+                    container_id,
                     i,
                     &input[j],
                     if is_interactive { "" } else { &output[j] },
                     lang.clone(),
                     is_interactive,
                 );
-                if status == JudgeStatus::ACCEPTED {
+                if status == JudgeStatus::Accepted {
                     score += i.score;
                 } else {
                     res = status.to_string().to_owned();
                 }
-                UpdateRealTimeInfo(
-                    if last == data_sum - 1 && task_id == JudgeOpt.tasks.len() {
+                update_real_time_info(
+                    if last == data_sum - 1 && task_id == judge_opt.tasks.len() {
                         res.as_str()
                     } else {
                         "RUNNING"
