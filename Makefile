@@ -39,6 +39,26 @@ list:
 	cd ~/kafka_2.12-2.3.0 && \
 	bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic result
 
+kafka_config_compose_file:
+	python3 ./deployments/sphinx-core-boj/scripts/kafka_cluster.py generate --src deployments/sphinx-core-boj/kafka-docker-deployment.template.yaml --dst deployments/sphinx-core-boj/kafka-docker-deployment.yaml
+
+kafka_up:
+	docker-compose -f deployments/sphinx-core-boj/kafka-docker-deployment.yaml up
+
+kafka_start:
+	docker-compose -f deployments/sphinx-core-boj/kafka-docker-deployment.yaml start
+
+kafka_stop:
+	docker-compose -f deployments/sphinx-core-boj/kafka-docker-deployment.yaml stop
+
+kafka_down:
+	docker-compose -f deployments/sphinx-core-boj/kafka-docker-deployment.yaml down
+
+kafka_clean: kafka_down
+	sudo rm -r /home/rinne/data/kafka-data/*
+
+
+.PHONY: kafka_config_compose_file kafka_up kafka_down kafka_start kafka_stop kafka_clean
 .PHONY: image
 .PHONY: clean
 .PHONY: build

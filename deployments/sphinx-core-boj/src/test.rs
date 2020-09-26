@@ -2,10 +2,13 @@ extern crate futures;
 extern crate rdkafka;
 
 use std::fs::read_to_string;
+use std::time::Duration;
 
 use bytes::{BufMut, BytesMut};
 use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
+
+use self::rdkafka::util::Timeout;
 
 fn produce(brokers: &str, topic_name: &str, uid: i32) {
     let mut buf = BytesMut::with_capacity(1024);
@@ -13,7 +16,7 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
     // let cpp = read_to_string("./test/binary_search/sol.cpp").unwrap();
     // buf.put("/home/rinne/Sphinx-Core/test/bs.toml");
     buf.put("/home/rinne/Sphinx-Core/test/sb.toml");
-    let cpp = read_to_string("./test/a+b/Main.cpp").unwrap();
+    let cpp = read_to_string("../../test/a+b/Main.cpp").unwrap();
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
         .set("produce.offset.report", "true")
@@ -21,31 +24,33 @@ fn produce(brokers: &str, topic_name: &str, uid: i32) {
         .create()
         .expect("Producer creation error");
 
-    let A = buf.take();
+    let a = buf.take();
     buf.put_u64_be(1);
-    let B = buf.take();
+    let b = buf.take();
     buf.put_u64_be(uid as u64);
-    let C = buf.take();
+    let c = buf.take();
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let k = &format!("233");
 
     let futures = producer
         .send(
             FutureRecord::to(topic_name)
                 .payload(&cpp)
-                .key(&format!("233"))
+                .key(k)
                 .headers(
                     OwnedHeaders::new()
-                        .add("problem", &A.to_vec())
-                        .add("lang", &B.to_vec())
-                        .add("uid", &C.to_vec()),
+                        .add("problem", &a.to_vec())
+                        .add("lang", &b.to_vec())
+                        .add("uid", &c.to_vec()),
                 ),
-            0,
+            Timeout::from(Duration::from_secs(10)),
         )
         .map(move |delivery_status| {
             println!("Delivery status for message 1 received");
             delivery_status
         });
 
-    println!("Future completed. Result: {:?}", futures.wait());
+    println!("Future completed. Result: {:?}", rt.block_on(futures));
 }
 
 struct CustomContext;
@@ -70,12 +75,15 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
     consumer
         .subscribe(&topics.to_vec())
         .expect("Can't subscribe to specified topics");
-    let message_stream = consumer.start();
-    for message in message_stream.wait() {
+    let mut message_stream = consumer.start();
+
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    while let Some(message) = rt.block_on(message_stream.next()) {
+        println!("receiving message");
+
         match message {
-            Err(_) => println!("Error while reading from stream."),
-            Ok(Err(e)) => println!("Kafka error: {}", e),
-            Ok(Ok(m)) => {
+            Err(e) => println!("Error while reading from stream. {}", e),
+            Ok(m) => {
                 let payload = match m.payload_view::<str>() {
                     None => "",
                     Some(Ok(s)) => s,
