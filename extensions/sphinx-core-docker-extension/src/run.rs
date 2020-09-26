@@ -6,11 +6,13 @@ use std::io::prelude::*;
 use std::path::Path;
 
 use dockworker::Docker;
-
 use tar::Builder;
-use super::env::*;
-use sphinx_core::{ProblemConfig, Language, CompileStatus, Compiler, JudgeStatus, Judge, CompilerConfig, JudgeReply, MainServerClient};
+
+use sphinx_core::{Compiler, CompilerConfig, CompileStatus, Judge, JudgeReply, JudgeStatus, Language, MainServerClient, ProblemConfig};
+
 use crate::utils::{create_judge_container, remove_judge_container};
+
+use super::env::*;
 
 pub fn copy_files(
     docker: &Docker,
@@ -70,34 +72,15 @@ pub fn copy_files(
     Ok(())
 }
 
-// pub struct MainServerClientHelper<'a, T:MainServerClient> {
-//     pub client: &'a T,
-//     rt: Runtime,
-// }
-//
-// impl<'a, T> MainServerClientHelper<'a, T> {
-//     pub fn new(client : &T) -> MainServerClientHelper<'a, T> {
-//         MainServerClientHelper {
-//             client,
-//             rt: tokio::runtime::Runtime::new().unwrap(),
-//         }
-//     }
-//
-//     pub fn update_real_time_info(&mut self, reply: &JudgeReply) {
-//         self.rt.block_on(self.client.update_real_time_info(reply))
-//     }
-// }
-
-pub fn run<T>(
-    docker: Docker,
+pub fn run<T: MainServerClient>(
+    docker: &Docker,
     submission_id: u64,
     lang: Language,
     judge_opt: ProblemConfig,
     code: String,
     base_url: &str,
-    mut client: &mut T,
+    client: &mut T,
 )
-where for<'a> &'a mut T: MainServerClient,
 {
     let container_id = create_judge_container(&docker, base_url).unwrap();
 
@@ -137,7 +120,7 @@ where for<'a> &'a mut T: MainServerClient,
                 &judge_opt,
                 lang.clone(),
                 base_url,
-                &mut client,
+                client,
             );
         }
         Err(err) => {
@@ -174,16 +157,15 @@ fn get_data(dir: &str, suf: &str) -> Vec<String> {
     ret
 }
 
-pub fn judge<T>(
+pub fn judge<T: MainServerClient>(
     docker: &Docker,
     container_id: &str,
     uid: u64,
     judge_opt: &ProblemConfig,
     lang: Language,
     base_url: &str,
-    mut client: &mut T
+    client: &mut T,
 )
-where for<'a> &'a mut T: MainServerClient,
 {
     let inner_judge = crate::Judge { docker: &docker, container_id: &container_id };
 

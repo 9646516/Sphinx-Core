@@ -1,0 +1,18 @@
+[package]
+name = "sphinx-core-boj"
+version = "0.1.0"
+authors = ["Myriad-Dreamin <camiyoru@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sphinx-core = { path = "../../sphinx-core" }
+sphinx-core-docker-extension = { path = "../../extensions/sphinx-core-docker-extension" }
+sphinx-core-kafka-extension = { path = "../../extensions/sphinx-core-kafka-extension" }
+crossbeam = "0.7.2"
+bytes = "0.4.12"
+tokio = { version = "0.2", features = ["full"] }
+dockworker = "0.0.15"
+futures = "0.3"
+rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }

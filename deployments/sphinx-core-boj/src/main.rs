@@ -1,16 +1,22 @@
-#![allow(non_snake_case)]
-#![allow(non_camel_case_types)]
-use crossbeam;
-use std::sync::RwLock;
 use std::{thread, time};
-use rdkafka::config::RDKafkaLogLevel;
-use rdkafka::{ClientConfig, ClientContext, Message};
-use rdkafka::consumer::{ConsumerContext, StreamConsumer, Consumer, CommitMode};
-use sphinx::env::{PAN_DIR, JURY};
-use tokio::stream::StreamExt;
-use rdkafka::message::Headers;
-use sphinx_core::{Language, ProblemConfigOptions, ProblemConfig};
+use std::sync::RwLock;
 
+use crossbeam;
+use dockworker::Docker;
+use rdkafka::{ClientConfig, ClientContext, Message};
+use rdkafka::config::RDKafkaLogLevel;
+use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, StreamConsumer};
+use rdkafka::message::Headers;
+use tokio::stream::StreamExt;
+
+use env::{JURY, PAN_DIR};
+use sphinx_core::{JudgeReply, Language, MainServerClient, ProblemConfig, ProblemConfigOptions};
+use sphinx_core_kafka::MainServerClientImpl;
+
+mod env;
+
+#[cfg(test)]
+mod test;
 
 struct CustomContext;
 
@@ -19,9 +25,10 @@ impl ClientContext for CustomContext {}
 impl ConsumerContext for CustomContext {}
 
 type LoggingConsumer = StreamConsumer<CustomContext>;
-fn get_number(V: &[u8]) -> u64 {
+
+fn get_number(v: &[u8]) -> u64 {
     let mut ret: u64 = 0;
-    for i in V.iter() {
+    for i in v.iter() {
         ret = ret * 256u64 + u64::from(*i);
     }
     ret
@@ -33,6 +40,7 @@ fn main() {
     let brokers = "localhost:9092";
     let group_id = "Q";
     let context = CustomContext;
+    let mut main_client = MainServerClientImpl::new();
 
     crossbeam::thread::scope(|s| {
 
@@ -99,26 +107,30 @@ fn main() {
                         println!("{}", payload);
                         println!("{} {} ", path, uid);
                         s.spawn(move |_| {
+                            let docker = Docker::connect_with_defaults().unwrap();
+                            let mut main_client = MainServerClientImpl::new();
+
                             *ref_sum.write().unwrap() += 1;
-                            sphinx_core_docker::run(uid, lang, conf, payload, &path);
+                            sphinx_core_docker::run(
+                                &docker, uid, lang, conf, payload, &path, &mut main_client);
                             *ref_sum.write().unwrap() -= 1;
                         });
                     } else {
                         println!("File Not Found,{:?}", _conf);
-                        sphinx_core_docker::client::oj_server::kafka::update::update_real_time_info(
-                            "SYSTEM ERROR",
-                            0,
-                            0,
-                            uid,
-                            0,
-                            0,
-                            "File Not Found",
-                        )
+                        main_client.update_real_time_info(&JudgeReply {
+                            status: "SYSTEM ERROR",
+                            mem: 0,
+                            time: 0,
+                            submission_id: uid,
+                            last: 0,
+                            score: 0,
+                            info: "File Not Found",
+                        })
                     }
                     consumer.commit_message(&m, CommitMode::Async).unwrap();
                 }
             };
         }
     })
-    .expect("crossbeam Failed");
+        .expect("crossbeam Failed");
 }

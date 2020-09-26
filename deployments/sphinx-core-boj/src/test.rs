@@ -1,10 +1,12 @@
 extern crate futures;
 extern crate rdkafka;
 
+use std::fs::read_to_string;
+
 use bytes::{BufMut, BytesMut};
 use futures::*;
 use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
-use std::fs::read_to_string;
+
 fn produce(brokers: &str, topic_name: &str, uid: i32) {
     let mut buf = BytesMut::with_capacity(1024);
 

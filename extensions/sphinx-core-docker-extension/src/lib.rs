@@ -6,5 +6,4 @@ mod compiler;
 mod judge;
 mod env;
 mod run;
-pub mod client;
 pub mod utils;

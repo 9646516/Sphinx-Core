@@ -14,13 +14,7 @@ path = "src/lib.rs"
 members = [
     "sphinx-core",
     "extensions/sphinx-core-docker-extension",
-    "extensions/sphinx-core-kafka-extension"
+    "extensions/sphinx-core-kafka-extension",
+    "deployments/sphinx-core-boj"
 ]
 
-[dependencies]
-sphinx-core = { path = "sphinx-core" }
-sphinx-core-docker-extension = { path = "extensions/sphinx-core-docker-extension" }
-crossbeam = "0.7.2"
-bytes = "0.4.12"
-tokio = { version = "0.2", features = ["full"] }
-rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }
