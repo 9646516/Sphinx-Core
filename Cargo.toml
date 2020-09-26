@@ -13,12 +13,13 @@ path = "src/lib.rs"
 [workspace]
 members = [
     "sphinx-core",
-    "sphinx-core-docker-provider"
+    "extensions/sphinx-core-docker-extension",
+    "extensions/sphinx-core-kafka-extension"
 ]
 
 [dependencies]
 sphinx-core = { path = "sphinx-core" }
-sphinx-core-docker-provider = { path = "sphinx-core-docker-provider" }
+sphinx-core-docker-extension = { path = "extensions/sphinx-core-docker-extension" }
 crossbeam = "0.7.2"
 bytes = "0.4.12"
 tokio = { version = "0.2", features = ["full"] }

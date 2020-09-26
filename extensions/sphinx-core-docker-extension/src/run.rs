@@ -1,4 +1,3 @@
-
 extern crate tar;
 
 use std::fs;
@@ -10,9 +9,8 @@ use dockworker::Docker;
 
 use tar::Builder;
 use super::env::*;
-use crate::client::oj_server::kafka::update::update_real_time_info;
-use sphinx_core::{ProblemConfig, Language, CompileStatus, Compiler, JudgeStatus, Judge};
-use crate::utils::init_docker;
+use sphinx_core::{ProblemConfig, Language, CompileStatus, Compiler, JudgeStatus, Judge, CompilerConfig, JudgeReply, MainServerClient};
+use crate::utils::{create_judge_container, remove_judge_container};
 
 pub fn copy_files(
     docker: &Docker,
@@ -47,7 +45,7 @@ pub fn copy_files(
         format!("Main.{}", lang.extension()),
         &mut File::open(&code_path).unwrap(),
     )
-    .unwrap();
+        .unwrap();
     if judge_opt.spj == NORMAL_JUDGE {
         a.append_file("judger", &mut File::open(&JURY).unwrap())
             .unwrap();
@@ -56,7 +54,7 @@ pub fn copy_files(
             "judger",
             &mut File::open(&format!("{}/{}", base_url, judge_opt.spj_path)).unwrap(),
         )
-        .unwrap();
+            .unwrap();
     }
     if judge_opt.spj != INTERACTIVE_JUDGE {
         a.append_file("core", &mut File::open(CORE1).unwrap())
@@ -72,16 +70,40 @@ pub fn copy_files(
     Ok(())
 }
 
-pub fn run(
+// pub struct MainServerClientHelper<'a, T:MainServerClient> {
+//     pub client: &'a T,
+//     rt: Runtime,
+// }
+//
+// impl<'a, T> MainServerClientHelper<'a, T> {
+//     pub fn new(client : &T) -> MainServerClientHelper<'a, T> {
+//         MainServerClientHelper {
+//             client,
+//             rt: tokio::runtime::Runtime::new().unwrap(),
+//         }
+//     }
+//
+//     pub fn update_real_time_info(&mut self, reply: &JudgeReply) {
+//         self.rt.block_on(self.client.update_real_time_info(reply))
+//     }
+// }
+
+pub fn run<T>(
+    docker: Docker,
     submission_id: u64,
     lang: Language,
     judge_opt: ProblemConfig,
     code: String,
     base_url: &str,
-) {
-    let docker = Docker::connect_with_defaults().unwrap();
-    let container_id = init_docker(&docker, base_url);
-    let compiler = crate::Compiler { docker: &docker };
+    mut client: &mut T,
+)
+where for<'a> &'a mut T: MainServerClient,
+{
+    let container_id = create_judge_container(&docker, base_url).unwrap();
+
+    let cfg = CompilerConfig {};
+    let mut compiler = crate::Compiler::new(&docker);
+    compiler.config(&cfg);
 
     match copy_files(
         &docker,
@@ -96,7 +118,15 @@ pub fn run(
             if lang.compile() {
                 let res = compiler.compile(&container_id, "/tmp".to_string(), lang.clone());
                 if res.status == CompileStatus::FAILED {
-                    update_real_time_info("COMPILE ERROR", 0, 0, submission_id, 0, 0, &res.info);
+                    client.update_real_time_info(&JudgeReply {
+                        status: "COMPILE ERROR",
+                        mem: 0,
+                        time: 0,
+                        submission_id,
+                        last: 0,
+                        score: 0,
+                        info: &res.info,
+                    });
                     return;
                 }
             }
@@ -107,15 +137,23 @@ pub fn run(
                 &judge_opt,
                 lang.clone(),
                 base_url,
+                &mut client,
             );
         }
         Err(err) => {
-            update_real_time_info("COMPILE ERROR", 0, 0, submission_id, 0, 0, &err);
+            client.update_real_time_info(&JudgeReply {
+                status: "COMPILE ERROR",
+                mem: 0,
+                time: 0,
+                submission_id,
+                last: 0,
+                score: 0,
+                info: &err,
+            });
         }
     }
-    docker
-        .remove_container(&container_id, Some(false), Some(true), Some(false))
-        .unwrap();
+
+    remove_judge_container(&docker, &container_id).unwrap();
 }
 
 fn get_data(dir: &str, suf: &str) -> Vec<String> {
@@ -136,15 +174,18 @@ fn get_data(dir: &str, suf: &str) -> Vec<String> {
     ret
 }
 
-pub fn judge(
+pub fn judge<T>(
     docker: &Docker,
     container_id: &str,
     uid: u64,
     judge_opt: &ProblemConfig,
     lang: Language,
     base_url: &str,
-) {
-    let inner_judge = crate::Judge { docker: &docker, container_id: &container_id};
+    mut client: &mut T
+)
+where for<'a> &'a mut T: MainServerClient,
+{
+    let inner_judge = crate::Judge { docker: &docker, container_id: &container_id };
 
     let acm = judge_opt.judge_type == "acm";
     let is_interactive = judge_opt.spj == INTERACTIVE_JUDGE;
@@ -163,7 +204,16 @@ pub fn judge(
             };
             data_sum += input.len() as u32;
             if !is_interactive && input != output {
-                update_real_time_info("DATA INVALID", 0, 0, uid, 0, 0, "input output dismatch");
+                client.update_real_time_info(&JudgeReply {
+                    status: "DATA INVALID",
+                    mem: 0,
+                    time: 0,
+                    submission_id: uid,
+                    last: 0,
+                    score: 0,
+                    info:
+                    "input output mismatch",
+                });
                 return;
             }
             for j in 0..input.len() {
@@ -175,22 +225,32 @@ pub fn judge(
                     is_interactive,
                 );
                 if status == JudgeStatus::Accepted {
-                    update_real_time_info(
-                        if last == data_sum - 1 && judge_opt.tasks.len() == task_id {
+                    client.update_real_time_info(&JudgeReply {
+                        status: if last == data_sum - 1 && judge_opt.tasks.len() == task_id {
                             "ACCEPTED"
                         } else {
                             "RUNNING"
                         },
-                        _m,
-                        _t,
-                        uid,
-                        last,
-                        0,
+                        mem: _m,
+                        time: _t,
+                        submission_id: uid,
+                        last: last,
+                        score: 0,
+                        info:
                         "",
-                    );
+                    });
                     last += 1;
                 } else {
-                    update_real_time_info(status.to_string(), _m, _t, uid, last, 0, "");
+                    client.update_real_time_info(&JudgeReply {
+                        status: status.to_string(),
+                        mem: _m,
+                        time: _t,
+                        submission_id: uid,
+                        last: last,
+                        score: 0,
+                        info:
+                        "",
+                    });
                     return;
                 }
             }
@@ -208,7 +268,16 @@ pub fn judge(
             };
             data_sum += input.len() as u32;
             if !is_interactive && input != output {
-                update_real_time_info("DATA INVALID", 0, 0, uid, 0, 0, "input output dismatch");
+                client.update_real_time_info(&JudgeReply {
+                    status: "DATA INVALID",
+                    mem: 0,
+                    time: 0,
+                    submission_id: uid,
+                    last: 0,
+                    score: 0,
+                    info:
+                    "input output mismatch",
+                });
                 return;
             }
             for j in 0..input.len() {
@@ -224,19 +293,20 @@ pub fn judge(
                 } else {
                     res = status.to_string().to_owned();
                 }
-                update_real_time_info(
-                    if last == data_sum - 1 && task_id == judge_opt.tasks.len() {
+                client.update_real_time_info(&JudgeReply {
+                    status: if last == data_sum - 1 && task_id == judge_opt.tasks.len() {
                         res.as_str()
                     } else {
                         "RUNNING"
                     },
-                    _m,
-                    _t,
-                    uid,
+                    mem: _m,
+                    time: _t,
+                    submission_id: uid,
                     last,
                     score,
+                    info:
                     "",
-                );
+                });
                 last += 1;
             }
         }

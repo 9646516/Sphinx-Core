@@ -1,5 +1,5 @@
 [package]
-name = "sphinx-core-docker-provider"
+name = "sphinx-core-docker-extension"
 version = "0.1.0"
 authors = ["Myriad-Dreamin <camiyoru@gmail.com>"]
 edition = "2018"
@@ -11,11 +11,10 @@ name = "sphinx_core_docker"
 path = "src/lib.rs"
 
 [dependencies]
-sphinx-core = { path = "../sphinx-core" }
+sphinx-core = { path = "../../sphinx-core" }
 tar = "0.4.26"
 dockworker = "0.0.15"
 # rdkafka-sys = "2.1.0"
 tokio = { version = "0.2", features = ["full"] }
 rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }
 futures = "0.3"
-json = "0.12.0"

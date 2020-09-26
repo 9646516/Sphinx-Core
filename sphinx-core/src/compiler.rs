@@ -12,7 +12,20 @@ pub struct CompileResult {
     pub info: String,
 }
 
-pub trait Compiler {
+pub struct CompilerConfig {
+}
+
+pub const DEFAULT_CONFIG: CompilerConfig = CompilerConfig{};
+
+impl CompilerConfig {
+
+    pub fn default() -> &'static CompilerConfig {
+        &DEFAULT_CONFIG
+    }
+}
+
+pub trait Compiler<'a> {
+    fn config(&mut self, cfg: &'a CompilerConfig);
     fn compile(&self, id: &str, source: String, lang: Language) -> CompileResult;
 }
 

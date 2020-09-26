@@ -4,7 +4,7 @@ use dockworker::{CreateExecOptions, Docker, StartExecOptions};
 use std::process::Command;
 
 
-pub(crate) fn init_docker(docker: &Docker, base_url: &str) -> String {
+pub fn create_judge_container(docker: &Docker, base_url: &str) -> dockworker::errors::Result<String> {
     let output = Command::new("docker")
         .arg("create")
         .arg("--interactive")
@@ -21,10 +21,17 @@ pub(crate) fn init_docker(docker: &Docker, base_url: &str) -> String {
         .output()
         .expect("create docker failed");
     let stdout = String::from_utf8_lossy(&output.stdout[0..output.stdout.len() - 1]);
-    docker.start_container(&stdout.to_string()).unwrap();
-    stdout.to_string()
+    match docker.start_container(&stdout.to_string()) {
+        Err(e) => Err(e),
+        Ok(_) => Ok(stdout.to_string())
+    }
 }
 
+pub fn remove_judge_container(docker: &Docker, container_id: &str) -> dockworker::errors::Result<()> {
+    docker.remove_container(&container_id, Some(false), Some(true), Some(false))
+}
+
+// todo: validate existence of container
 
 pub(crate) fn run_cmd(docker: &Docker, id: &str, cmd: String) -> (u32, String) {
     let mut buf: Vec<u8> = Vec::new();

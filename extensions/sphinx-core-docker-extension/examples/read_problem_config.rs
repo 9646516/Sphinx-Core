@@ -8,7 +8,7 @@ fn main() {
         spj_path: "123".to_owned(),
     };
 
-    let cfg = ProblemConfig::read("../sphinx-core/examples/bs.toml", &option).unwrap();
+    let cfg = ProblemConfig::read("sphinx-core/examples/bs.toml", &option).unwrap();
 
     println!("{}", cfg.judge_type);
 }
