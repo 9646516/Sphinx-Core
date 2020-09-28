@@ -1,31 +1,43 @@
 package go_sphinx_client
 
-import "github.com/Shopify/sarama"
+import (
+	"github.com/Shopify/sarama"
+	"time"
+	"github.com/google/uuid"
+)
 
 type Config struct {
 	BrokerHosts   []string
 	ProducerGroup string
+	ConsumerGroup string
 
 	PostSubmissionRequestTopic string
+	GetSubmissionResultTopic string
 }
 
-func (cfg *Config) NewConsumer() (sarama.Consumer, error) {
-	return sarama.NewConsumer(cfg.BrokerHosts, nil)
+func (cfg *Config) SaramaCommonConfig() (config *sarama.Config) {
+	config = sarama.NewConfig()
+	config.Net.ReadTimeout = time.Second * 5
+	config.Net.WriteTimeout = time.Second * 5
+
+	config.ClientID = ClientIdentifier + "-" + uuid.New().String()
+	config.Version = sarama.V2_6_0_0
+	return
 }
 
-//let producer: FutureProducer = ClientConfig::new()
-//.set("bootstrap.servers", brokers)
+func (cfg *Config) NewConsumerGroup() (sarama.ConsumerGroup, error) {
+	config := cfg.SaramaCommonConfig()
+
+	return sarama.NewConsumerGroup(cfg.BrokerHosts, cfg.ConsumerGroup, config)
+}
+
 //.set("produce.offset.report", "true")
-//.set("message.timeout.ms", "5000")
-//.create()
-//.expect("Producer creation error");
 
 func (cfg *Config) NewProducerSync() (sarama.SyncProducer, error) {
-	config := sarama.NewConfig() // 1
+	config := cfg.SaramaCommonConfig()
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
-	config.Version = sarama.V2_6_0_0
 
 	return sarama.NewSyncProducer(cfg.BrokerHosts, config)
 }

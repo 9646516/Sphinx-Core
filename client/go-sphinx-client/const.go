@@ -5,3 +5,8 @@ var (
 	PostSubmissionHeaderKeyLanguage          = []byte("lang")
 	PostSubmissionHeaderKeySubmissionID      = []byte("uid")
 )
+
+const (
+	Version = "v1001"
+	ClientIdentifier = "go-sarama-" + Version
+)
