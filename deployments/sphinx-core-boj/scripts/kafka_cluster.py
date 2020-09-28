@@ -71,7 +71,7 @@ def list_topic(_=None):
 
 def clean_topics(_=None):
     code = invoke_kafka_topics([" --delete --topic in"])
-    code = code and invoke_kafka_topics([" --delete --topic result"])
+    code = code or invoke_kafka_topics([" --delete --topic result"])
     return code
 
 
