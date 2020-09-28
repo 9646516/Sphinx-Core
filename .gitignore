@@ -19,4 +19,4 @@ Cargo.lock
 #**/*.rs.bk
 o
 Jury
-*.class
+*.class 
