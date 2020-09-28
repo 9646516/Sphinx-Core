@@ -17,3 +17,4 @@ dockworker = "0.0.15"
 futures = "0.3"
 # rdkafka-sys = "2.1.5"
 rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }
+async-trait = "0.1.40"

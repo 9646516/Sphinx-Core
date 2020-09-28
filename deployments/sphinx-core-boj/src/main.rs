@@ -44,9 +44,7 @@ async fn main() {
     let context = CustomContext;
     let docker = Docker::connect_with_defaults().unwrap();
 
-    let mut inner_runtime = tokio::runtime::Runtime::new().unwrap();
-
-    let mut main_client = MainServerClientImpl::new(&mut inner_runtime);
+    let mut main_client = MainServerClientImpl::new();
 
     println!("connecting {}:group_id={}", brokers, group_id);
 
@@ -123,7 +121,7 @@ async fn main() {
 
                     *ref_sum.write().unwrap() += 1;
                     sphinx_core_docker::run(
-                        &docker, uid, lang, conf, payload, "/home/rinne/Sphinx/code", &mut main_client);
+                        &docker, uid, lang, conf, payload, "/home/rinne/Sphinx/code", &mut main_client).await;
                     *ref_sum.write().unwrap() -= 1;
                     // });
                 } else {
@@ -136,7 +134,7 @@ async fn main() {
                         last: 0,
                         score: 0,
                         info: "File Not Found",
-                    })
+                    }).await;
                 }
                 consumer.commit_message(&m, CommitMode::Async).unwrap();
             }

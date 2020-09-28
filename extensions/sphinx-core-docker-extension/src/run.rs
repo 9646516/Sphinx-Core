@@ -72,7 +72,7 @@ pub fn copy_files(
     Ok(())
 }
 
-pub fn run<T: MainServerClient>(
+pub async fn run<T: MainServerClient>(
     docker: &Docker,
     submission_id: u64,
     lang: Language,
@@ -109,7 +109,7 @@ pub fn run<T: MainServerClient>(
                         last: 0,
                         score: 0,
                         info: &res.info,
-                    });
+                    }).await;
                     return;
                 }
             }
@@ -121,7 +121,7 @@ pub fn run<T: MainServerClient>(
                 lang.clone(),
                 base_url,
                 client,
-            );
+            ).await;
         }
         Err(err) => {
             client.update_real_time_info(&JudgeReply {
@@ -132,7 +132,7 @@ pub fn run<T: MainServerClient>(
                 last: 0,
                 score: 0,
                 info: &err,
-            });
+            }).await;
         }
     }
 
@@ -157,7 +157,7 @@ fn get_data(dir: &str, suf: &str) -> Vec<String> {
     ret
 }
 
-pub fn judge<T: MainServerClient>(
+pub async fn judge<T: MainServerClient>(
     docker: &Docker,
     container_id: &str,
     uid: u64,
@@ -194,8 +194,8 @@ pub fn judge<T: MainServerClient>(
                     last: 0,
                     score: 0,
                     info:
-                    "input output mismatch",
-                });
+                   "input output mismatch",
+                }).await ;
                 return;
             }
             for j in 0..input.len() {
@@ -215,12 +215,12 @@ pub fn judge<T: MainServerClient>(
                         },
                         mem: _m,
                         time: _t,
-                        submission_id: uid,
+                       submission_id: uid,
                         last: last,
                         score: 0,
                         info:
                         "",
-                    });
+                    }).await ;
                     last += 1;
                 } else {
                     client.update_real_time_info(&JudgeReply {
@@ -232,7 +232,7 @@ pub fn judge<T: MainServerClient>(
                         score: 0,
                         info:
                         "",
-                    });
+                    }).await;
                     return;
                 }
             }
@@ -258,8 +258,8 @@ pub fn judge<T: MainServerClient>(
                     last: 0,
                     score: 0,
                     info:
-                    "input output mismatch",
-                });
+                   "input output mismatch",
+                }).await ;
                 return;
             }
             for j in 0..input.len() {
@@ -283,12 +283,12 @@ pub fn judge<T: MainServerClient>(
                     },
                     mem: _m,
                     time: _t,
-                    submission_id: uid,
+                   submission_id: uid,
                     last,
                     score,
                     info:
                     "",
-                });
+                }) .await;
                 last += 1;
             }
         }

@@ -1,29 +1,26 @@
 extern crate futures;
 extern crate rdkafka;
-use crate::client::futures::TryFutureExt;
 use std::time::Duration;
-use futures::{future, Future};
+use async_trait::async_trait;
 use rdkafka::{config::*, message::*, producer::*};
 
-use sphinx_core::{JudgeReply, MainServerClient};
+use sphinx_core::{JudgeReply, MainServerClient, UpdateRealTimeInfoResult};
 
 use self::rdkafka::util::Timeout;
-use self::futures::{AsyncBufRead, TryStreamExt};
 
-pub struct MainServerClientImpl<'a> {
-    rt: &'a mut tokio::runtime::Runtime,
+pub struct MainServerClientImpl {
 }
 
-impl<'a> MainServerClientImpl<'a> {
-    pub fn new(rt: &mut tokio::runtime::Runtime) -> MainServerClientImpl {
+impl MainServerClientImpl {
+    pub fn new() -> MainServerClientImpl {
         MainServerClientImpl {
-            rt
         }
     }
 }
 
-impl<'a> MainServerClient for MainServerClientImpl<'a> {
-    fn update_real_time_info(&mut self, reply: &JudgeReply) {
+#[async_trait]
+impl MainServerClient for MainServerClientImpl {
+    async fn update_real_time_info(&mut self, reply: &JudgeReply<'_>) -> UpdateRealTimeInfoResult {
         let topic_name = "result";
         let brokers = "localhost:9092";
         let producer: FutureProducer = ClientConfig::new()
@@ -32,7 +29,7 @@ impl<'a> MainServerClient for MainServerClientImpl<'a> {
             .set("message.timeout.ms", "5000")
             .create()
             .expect("Producer creation error");
-        producer.send(
+        let res = producer.send(
             FutureRecord::to(topic_name)
                 .payload(reply.status)
                 .key("")
@@ -46,12 +43,16 @@ impl<'a> MainServerClient for MainServerClientImpl<'a> {
                         .add("info", reply.info),
                 ),
             Timeout::from(Duration::from_secs(10)),
-        ).and_then(|_|{
-            println!(
-                "status:{} mem:{} time:{} uid:{} last:{} info:{} score:{}",
-                reply.status, reply.mem, reply.time, reply.submission_id, reply.last, reply.info, reply.score
-            )
-        });
+        ).await.unwrap();
+        println!(
+            "status:{} mem:{} time:{} uid:{} last:{} info:{} score:{}",
+            reply.status, reply.mem, reply.time, reply.submission_id, reply.last, reply.info, reply.score
+        );
+
+        return UpdateRealTimeInfoResult{
+            a:res.0,
+            b:res.1,
+        };
     }
 }
 
