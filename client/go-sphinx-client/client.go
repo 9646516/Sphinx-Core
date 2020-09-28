@@ -1,9 +1,35 @@
 package go_sphinx_client
 
 import (
-    _ "github.com/bsm/sarama-cluster"
+	"context"
+	_ "github.com/Shopify/sarama"
+	"io"
 )
 
-func New() int {
-	return 10555
+type SphinxClient interface {
+	PostSubmissionRequest(
+		ctx context.Context, in *SphinxPostSubmissionRequest) (
+		out *SphinxPostSubmissionReply, err error)
+}
+
+type SphinxPostSubmissionRequest struct {
+	Code              io.Reader
+	ProblemConfigPath string
+	Language          uint64
+	SubmissionID      uint64
+}
+
+type SphinxPostSubmissionReply struct {
+	Partition int32
+	Offset    int64
+}
+
+type IClientSender interface {
+	SphinxClient
+	End()
+}
+
+type IClient interface {
+	SphinxClient
+	Begin() IClientSender
 }

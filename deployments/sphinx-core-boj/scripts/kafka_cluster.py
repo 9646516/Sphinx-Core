@@ -74,6 +74,10 @@ def insert_topic(args):
     invoke_kafka_topics(["233"])
 
 
+def get_version(_=None):
+    invoke_kafka_topics(["--version"])
+
+
 def add_topic(_=None):
     invoke_kafka_topics(["--create --replication-factor 1 --partitions 1 --topic in"])
     invoke_kafka_topics(["--create --replication-factor 1 --partitions 1 --topic result"])
@@ -95,6 +99,7 @@ commands = {
     'list_topic': list_topic,
     'clean_topics': clean_topics,
     'add_topic': add_topic,
+    'get_version': get_version,
 }
 
 if __name__ == '__main__':
