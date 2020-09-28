@@ -44,7 +44,7 @@ impl<'a> sphinx_core::Judge for Judge<'a> {
         } else {
             let decoder = StdJudgeOutputDecoder::new();
             let cfg = decoder.decode(
-                &BufReader::new(info.as_bytes())).unwrap();
+                &mut BufReader::new(info.as_bytes())).unwrap();
             (cfg.status, cfg.time_cost, cfg.memory_cost)
         }
     }

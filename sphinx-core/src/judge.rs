@@ -61,30 +61,34 @@ pub struct JudgeReply<'a> {
 }
 
 pub trait JudgeOutputDecoder {
-    fn decode<T: Read>(&self, reader: &T) -> Result<JudgeOutput, JudgeOutputError>;
+    fn decode<T: Read>(&self, reader: &mut T) -> Result<JudgeOutput, JudgeOutputError>;
 }
 
 pub struct StdJudgeOutputDecoder {}
 
 impl StdJudgeOutputDecoder {
     pub fn new() -> StdJudgeOutputDecoder {
-        StdJudgeOutputDecoder{}
+        StdJudgeOutputDecoder {}
     }
 }
 
 impl JudgeOutputDecoder for StdJudgeOutputDecoder {
-    fn decode<T: Read>(&self, _reader: &T) -> Result<JudgeOutput, JudgeOutputError> {
-        let res = json::parse(&stringify!(_reader.bytes())).unwrap();
+    fn decode<T: Read>(&self, _reader: &mut T) -> Result<JudgeOutput, JudgeOutputError> {
+        let mut buffer = Vec::new();
+        _reader.read_to_end(&mut buffer).unwrap();
+        let sb = String::from_utf8(buffer).unwrap();
+        println!("114514 {}", sb);
+        let res = json::parse(&sb).unwrap();
         if res["result"].as_str().unwrap() == "Judger Error" {
             return Ok(JudgeOutput {
                 status: JudgeStatus::UnknownError,
                 memory_cost: 0,
-                time_cost: 0
+                time_cost: 0,
             });
         }
         let time_cost = res["time_cost"].as_u64().unwrap();
         let memory_cost = res["memory_cost"].as_u64().unwrap();
-        return Ok(JudgeOutput{
+        return Ok(JudgeOutput {
             status: match res["result"].as_str().unwrap() {
                 "Runtime Error" => JudgeStatus::RuntimeError,
                 "Time Limit Exceeded" => JudgeStatus::TimeLimitedError,

@@ -80,7 +80,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     while let Some(message) = rt.block_on(message_stream.next()) {
         println!("receiving message");
-
+        println!("114514 \"{:?}\"", message);
         match message {
             Err(e) => println!("Error while reading from stream. {}", e),
             Ok(m) => {

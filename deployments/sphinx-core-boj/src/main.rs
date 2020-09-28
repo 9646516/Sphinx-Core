@@ -43,7 +43,10 @@ async fn main() {
     let group_id = "Q";
     let context = CustomContext;
     let docker = Docker::connect_with_defaults().unwrap();
-    let mut main_client = MainServerClientImpl::new();
+
+    let mut inner_runtime = tokio::runtime::Runtime::new().unwrap();
+
+    let mut main_client = MainServerClientImpl::new(&mut inner_runtime);
 
     println!("connecting {}:group_id={}", brokers, group_id);
 
@@ -64,8 +67,6 @@ async fn main() {
         .expect("Can't subscribe to specified topics");
 
     let mut message_stream = consumer.start();
-
-    // let mut rt = tokio::runtime::Runtime::new().unwrap();
 
     println!("beginning to listening");
 

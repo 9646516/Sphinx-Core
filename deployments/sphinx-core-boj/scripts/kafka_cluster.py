@@ -53,8 +53,17 @@ def invoke_kafka_topics(options):
 
     print(cmd)
     import subprocess
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     process.wait()
+
+    a, b = process.communicate()
+    print("*" * 100)
+    print("stdout")
+    print(a.decode().strip())
+    print("*" * 100)
+    print("stderr")
+    print(b.decode().strip())
+    print("*" * 100)
     return process.returncode
 
 
@@ -63,6 +72,11 @@ def insert_topic(args):
     args = parser.parse_args(args)
 
     invoke_kafka_topics(["233"])
+
+
+def add_topic(_=None):
+    invoke_kafka_topics(["--create --replication-factor 1 --partitions 1 --topic in"])
+    invoke_kafka_topics(["--create --replication-factor 1 --partitions 1 --topic result"])
 
 
 def list_topic(_=None):
@@ -80,6 +94,7 @@ commands = {
     'insert_topic': insert_topic,
     'list_topic': list_topic,
     'clean_topics': clean_topics,
+    'add_topic': add_topic,
 }
 
 if __name__ == '__main__':
