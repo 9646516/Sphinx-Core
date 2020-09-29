@@ -8,6 +8,8 @@ use sphinx_core::{JudgeReply, MainServerClient, UpdateRealTimeInfoResult};
 
 use self::rdkafka::util::Timeout;
 
+// use log::LogLevel;
+
 pub struct MainServerClientImpl {
 }
 
@@ -16,11 +18,17 @@ impl MainServerClientImpl {
         MainServerClientImpl {
         }
     }
+
 }
 
 #[async_trait]
 impl MainServerClient for MainServerClientImpl {
     async fn update_real_time_info(&mut self, reply: &JudgeReply<'_>) -> UpdateRealTimeInfoResult {
+        info!(
+            "status:{} mem:{} time:{} uid:{} last:{} info:{} score:{}",
+            reply.status, reply.mem, reply.time, reply.submission_id, reply.last, reply.info, reply.score
+        );
+
         let topic_name = "result";
         let brokers = "localhost:9092";
         let producer: FutureProducer = ClientConfig::new()
@@ -44,7 +52,8 @@ impl MainServerClient for MainServerClientImpl {
                 ),
             Timeout::from(Duration::from_secs(10)),
         ).await.unwrap();
-        println!(
+
+        info!(
             "status:{} mem:{} time:{} uid:{} last:{} info:{} score:{}",
             reply.status, reply.mem, reply.time, reply.submission_id, reply.last, reply.info, reply.score
         );

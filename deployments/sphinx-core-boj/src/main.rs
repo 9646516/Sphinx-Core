@@ -15,6 +15,10 @@ use sphinx_core_kafka::MainServerClientImpl;
 
 mod env;
 
+#[macro_use]
+extern crate log;
+
+
 #[cfg(test)]
 mod test;
 
@@ -37,6 +41,9 @@ fn get_number(v: &[u8]) -> u64 {
 
 #[tokio::main]
 async fn main() {
+    log4rs::init_file("config/log4rs.yaml",Default::default()).unwrap();
+    info!("Hello, world!");
+
     let sum = RwLock::new(1usize);
     let topics = vec!["in"];
     let brokers = "localhost:9092";

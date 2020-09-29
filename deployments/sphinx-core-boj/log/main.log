@@ -1,0 +1,1 @@
+{"time":"2020-09-29T13:23:16.187020600+08:00","message":"Hello, world!","module_path":"sphinx_core_boj","file":"deployments\\sphinx-core-boj\\src\\main.rs","line":45,"level":"INFO","target":"sphinx_core_boj","thread":"main","thread_id":20356,"mdc":{}}

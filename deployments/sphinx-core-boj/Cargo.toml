@@ -18,3 +18,5 @@ futures = "0.3"
 # rdkafka-sys = "2.1.5"
 rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }
 async-trait = "0.1.40"
+log = "0.4"
+log4rs = "0.11.0"
