@@ -15,5 +15,6 @@ sphinx-core = { path = "../../sphinx-core" }
 tokio = { version = "0.2", features = ["full"] }
 rdkafka = { git = "https://github.com/fede1024/rust-rdkafka.git", branch = "master", features = ["cmake-build"] }
 futures = "0.3"
+bytes = "0.4.12"
 async-trait = "0.1.40"
 log = "0.4"
