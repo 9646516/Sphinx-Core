@@ -1,7 +1,6 @@
 use std::{thread, time};
 use std::sync::RwLock;
 
-// use crossbeam;
 use dockworker::Docker;
 use rdkafka::{ClientConfig, ClientContext, Message};
 use rdkafka::config::RDKafkaLogLevel;
@@ -41,7 +40,7 @@ fn get_number(v: &[u8]) -> u64 {
 
 #[tokio::main]
 async fn main() {
-    log4rs::init_file("config/log4rs.yaml",Default::default()).unwrap();
+    log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
     info!("Hello, world!");
 
     let sum = RwLock::new(1usize);
@@ -54,8 +53,6 @@ async fn main() {
     let mut main_client = MainServerClientImpl::new();
 
     println!("connecting {}:group_id={}", brokers, group_id);
-
-    // crossbeam::thread::scope(|s| {
 
     let consumer: LoggingConsumer = ClientConfig::new()
         .set("group.id", group_id)
@@ -96,18 +93,7 @@ async fn main() {
 
                 let headers = m.headers().unwrap();
                 assert_eq!(headers.count(), 3);
-                // for i in 0..3 {
-                //     println!(
-                //         "{:?} {:?}",
-                //         headers.get(i).unwrap().0,
-                //         headers.get(i).unwrap().1
-                //     );
-                // }
-                // let path: String = format!(
-                //     "{}/{}",
-                //     PAN_DIR,
-                //     String::from_utf8_lossy(headers.get(0).unwrap().1)
-                // );
+
                 let path = format!("{}", String::from_utf8_lossy(headers.get(0).unwrap().1));
 
                 let lang = Language::from(get_number(headers.get(1).unwrap().1));
@@ -117,20 +103,15 @@ async fn main() {
                     spj_path: JURY.to_owned(),
                 };
 
-                // let path = format!("{}/problem-config.toml", path);
-
                 let _conf = ProblemConfig::read(&path, &options);
                 if let Ok(conf) = _conf {
                     let ref_sum = &sum;
                     println!("{}", payload);
                     println!("{} {} ", path, uid);
-                    // s.spawn(move |_| {
-
                     *ref_sum.write().unwrap() += 1;
                     sphinx_core_docker::run(
-                        &docker, uid, lang, conf, payload, "/home/rinne/Sphinx/code", &mut main_client).await;
+                        &docker, uid, lang, conf, payload, env::PAN_DIR, &mut main_client).await;
                     *ref_sum.write().unwrap() -= 1;
-                    // });
                 } else {
                     println!("File {} Not Found,{:?}", path, _conf);
                     main_client.update_real_time_info(&JudgeReply {
@@ -147,6 +128,4 @@ async fn main() {
             }
         };
     }
-    // })
-    //    .expect("crossbeam Failed");
 }

@@ -1,4 +1,3 @@
-
 use dockworker::Docker;
 use sphinx_core::{Task, Language, JudgeStatus, StdJudgeOutputDecoder, JudgeOutputDecoder};
 use crate::utils::run_cmd;
@@ -32,11 +31,8 @@ impl<'a> sphinx_core::Judge for Judge<'a> {
             )
         };
 
-        println!("{}", cmd);
-
         //exec
         let (status, info) = run_cmd(self.docker, self.container_id, cmd);
-        println!("{} {}", status, info);
 
         // decode output and return
         if status != 0 {

@@ -34,7 +34,6 @@ impl MainServerClient for MainServerClientImpl {
         let brokers = "localhost:9092";
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
-            .set("produce.offset.report", "true")
             .set("message.timeout.ms", "5000")
             .create()
             .expect("Producer creation error");
@@ -67,11 +66,6 @@ impl MainServerClient for MainServerClientImpl {
                 ),
             Timeout::from(Duration::from_secs(10)),
         ).await.unwrap();
-
-        info!(
-            "status:{} mem:{} time:{} uid:{} last:{} info:{} score:{}",
-            reply.status, reply.mem, reply.time, reply.submission_id, reply.last, reply.info, reply.score
-        );
 
         return UpdateRealTimeInfoResult{
             a:res.0,

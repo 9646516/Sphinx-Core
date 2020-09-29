@@ -31,8 +31,6 @@ func (cfg *Config) NewConsumerGroup() (sarama.ConsumerGroup, error) {
 	return sarama.NewConsumerGroup(cfg.BrokerHosts, cfg.ConsumerGroup, config)
 }
 
-//.set("produce.offset.report", "true")
-
 func (cfg *Config) NewProducerSync() (sarama.SyncProducer, error) {
 	config := cfg.SaramaCommonConfig()
 	config.Producer.Return.Successes = true

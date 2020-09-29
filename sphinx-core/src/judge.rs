@@ -77,7 +77,6 @@ impl JudgeOutputDecoder for StdJudgeOutputDecoder {
         let mut buffer = Vec::new();
         _reader.read_to_end(&mut buffer).unwrap();
         let sb = String::from_utf8(buffer).unwrap();
-        println!("114514 {}", sb);
         let res = json::parse(&sb).unwrap();
         if res["result"].as_str().unwrap() == "Judger Error" {
             return Ok(JudgeOutput {

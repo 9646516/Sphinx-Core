@@ -10,8 +10,6 @@ judge-type = "acm"
     output-path = "1"
     score=10
 
-
-
 [special-judge]
 enable = 0
 file-path = ""
