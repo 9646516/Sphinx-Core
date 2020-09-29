@@ -1,25 +1,24 @@
 extern crate futures;
 extern crate rdkafka;
+
 use std::time::Duration;
+
 use async_trait::async_trait;
+use bytes::{BufMut, BytesMut};
 use rdkafka::{config::*, message::*, producer::*};
 
-use bytes::{BufMut, BytesMut};
 use sphinx_core::{JudgeReply, MainServerClient, UpdateRealTimeInfoResult};
 
 use self::rdkafka::util::Timeout;
 
 // use log::LogLevel;
 
-pub struct MainServerClientImpl {
-}
+pub struct MainServerClientImpl {}
 
 impl MainServerClientImpl {
     pub fn new() -> MainServerClientImpl {
-        MainServerClientImpl {
-        }
+        MainServerClientImpl {}
     }
-
 }
 
 #[async_trait]
@@ -67,9 +66,9 @@ impl MainServerClient for MainServerClientImpl {
             Timeout::from(Duration::from_secs(10)),
         ).await.unwrap();
 
-        return UpdateRealTimeInfoResult{
-            a:res.0,
-            b:res.1,
+        return UpdateRealTimeInfoResult {
+            a: res.0,
+            b: res.1,
         };
     }
 }

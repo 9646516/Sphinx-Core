@@ -1,14 +1,15 @@
 [judge]
 
-judge-type = "acm"
+judge-type = "oi"
 
-    [[judge.tasks]]
-    name = "task"
-    time-limit = 1000
-    memory-limit = 256000000
-    input-path = "2"
-    output-path = "2"
-    score=10
+[[judge.tasks]]
+name = "task"
+time-limit = 1000
+memory-limit = 256000000
+input-path = "2"
+output-path = ""
+score = 10
+
 
 [special-judge]
 enable = 2

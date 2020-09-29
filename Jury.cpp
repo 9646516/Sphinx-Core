@@ -1,5 +1,6 @@
 #include "testlib/testlib.h"
 #include <bits/stdc++.h>
+
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -16,7 +17,8 @@ int main(int argc, char *argv[]) {
         ouf.readWordTo(p);
 
         if (j != p)
-            quitf(_wa, "%d%s words differ - expected: '%s', found: '%s'", n, englishEnding(n).c_str(), compress(j).c_str(), compress(p).c_str());
+            quitf(_wa, "%d%s words differ - expected: '%s', found: '%s'", n, englishEnding(n).c_str(),
+                  compress(j).c_str(), compress(p).c_str());
     }
 
     if (ans.seekEof() && ouf.seekEof()) {

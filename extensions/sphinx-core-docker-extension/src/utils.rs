@@ -1,8 +1,7 @@
 use std::io::Read;
-
-use dockworker::{CreateExecOptions, Docker, StartExecOptions};
 use std::process::Command;
 
+use dockworker::{CreateExecOptions, Docker, StartExecOptions};
 
 pub fn create_judge_container(docker: &Docker, base_url: &str) -> dockworker::errors::Result<String> {
     let output = Command::new("docker")

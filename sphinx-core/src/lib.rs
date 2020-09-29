@@ -1,9 +1,9 @@
 pub use compiler::*;
+pub use dep::*;
 pub use judge::*;
 pub use language::*;
-pub use problem_config::*;
 pub use main_server::*;
-pub use dep::*;
+pub use problem_config::*;
 
 mod compiler;
 mod judge;

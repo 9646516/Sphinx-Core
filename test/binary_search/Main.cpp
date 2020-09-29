@@ -1,5 +1,7 @@
 #include <bits/stdc++.h>
+
 using namespace std;
+
 int main(int argc, char *argv[]) {
     int L = 1, R = 1e9, res;
     while (L <= R) {

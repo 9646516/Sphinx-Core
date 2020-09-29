@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
 /*****************************************************************************
  * run programs on Linux with resource limited.
  * Based on setrlimit.(https://linux.die.net/man/2/setrlimit)
@@ -78,13 +79,14 @@ int main(int argc, char *argv[]) {
     char *answer_sourcefile = argv[7];
     char *running_arguments = argv[8];
     char *checker_sourcefile = argv[9];
-    sprintf(checker_arguments, "%s %s %s %s", checker_sourcefile, input_sourcefile, output_sourcefile, answer_sourcefile);
+    sprintf(checker_arguments, "%s %s %s %s", checker_sourcefile, input_sourcefile, output_sourcefile,
+            answer_sourcefile);
     if (freopen("/dev/null", "w", stderr) == NULL)
         errExit("Can not redirect stderr");
     pid = fork();
     if (pid > 0) {
         pthread_t watch_thread;
-        if (pthread_create(&watch_thread, NULL, (void *)wait_to_kill_childprocess, NULL))
+        if (pthread_create(&watch_thread, NULL, (void *) wait_to_kill_childprocess, NULL))
             errExit("Can not create watch pthread");
         int status;
         struct rusage result;
@@ -94,7 +96,7 @@ int main(int argc, char *argv[]) {
             errExit("Unknown Error");
         else if (status_code == 127)
             errExit("Can not run target program( command not found )");
-        long long timecost = (long long)result.ru_utime.tv_sec * 1000000LL + (long long)result.ru_utime.tv_usec;
+        long long timecost = (long long) result.ru_utime.tv_sec * 1000000LL + (long long) result.ru_utime.tv_usec;
         if (status_code == SIGXCPU || timecost > timelimit * 1000LL || Exceeded_wall_clock_time)
             goodExit("Time Limit Exceeded", timelimit, result.ru_maxrss);
         else if (status_code == SIGIOT)
@@ -102,7 +104,7 @@ int main(int argc, char *argv[]) {
         else if (status_code == SIGXFSZ)
             goodExit("Output Limit Exceeded", timecost / 1000, result.ru_maxrss);
         else if (result.ru_maxrss * 1024 > memorylimit)
-            goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit/1024);
+            goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit / 1024);
         else if (status_code != 0)
             goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
         int checker_statuscode = system(checker_arguments);
@@ -123,7 +125,7 @@ int main(int argc, char *argv[]) {
             set_limit(RLIMIT_DATA, memorylimit, 0);
             set_limit(RLIMIT_FSIZE, outputlimit, 0);
             set_limit(RLIMIT_STACK, stacklimit, 0);
-            execl("/bin/sh", "sh", "-c", running_arguments, (char *)0);
+            execl("/bin/sh", "sh", "-c", running_arguments, (char *) 0);
         }
     } else
         errExit("Can not fork the child process");

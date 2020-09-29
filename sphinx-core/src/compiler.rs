@@ -12,13 +12,11 @@ pub struct CompileResult {
     pub info: String,
 }
 
-pub struct CompilerConfig {
-}
+pub struct CompilerConfig {}
 
-pub const DEFAULT_CONFIG: CompilerConfig = CompilerConfig{};
+pub const DEFAULT_CONFIG: CompilerConfig = CompilerConfig {};
 
 impl CompilerConfig {
-
     pub fn default() -> &'static CompilerConfig {
         &DEFAULT_CONFIG
     }

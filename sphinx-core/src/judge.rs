@@ -1,8 +1,9 @@
-use crate::{Task, Language};
-use std::{error, fmt};
 use error::Error;
+use std::{error, fmt};
 use std::fmt::{Display, Formatter};
 use std::io::Read;
+
+use crate::{Language, Task};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum JudgeStatus {

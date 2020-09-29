@@ -1,7 +1,10 @@
-use dockworker::Docker;
-use sphinx_core::{Task, Language, JudgeStatus, StdJudgeOutputDecoder, JudgeOutputDecoder};
-use crate::utils::run_cmd;
 use std::io::BufReader;
+
+use dockworker::Docker;
+
+use sphinx_core::{JudgeOutputDecoder, JudgeStatus, Language, StdJudgeOutputDecoder, Task};
+
+use crate::utils::run_cmd;
 
 pub struct Judge<'a> {
     pub(crate) docker: &'a Docker,

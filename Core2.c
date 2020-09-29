@@ -46,6 +46,7 @@ int get_status_code(int x) {
         x -= 128;
     return x;
 }
+
 /*****************************************************************************
  * Author: 9646516
  * Used for Interactive Problem
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]) {
         pid2 = fork();
         if (pid2 > 0) { //主程序
             pthread_t watch_thread;
-            if (pthread_create(&watch_thread, NULL, (void *)wait_to_kill_childprocess, NULL))
+            if (pthread_create(&watch_thread, NULL, (void *) wait_to_kill_childprocess, NULL))
                 errExit("Can not create watch pthread");
             int status;
             struct rusage result;
@@ -86,7 +87,7 @@ int main(int argc, char *argv[]) {
                 errExit("Unknown Error");
             else if (status_code == 127)
                 errExit("Can not run target program( command not found )");
-            long long timecost = (long long)result.ru_utime.tv_sec * 1000000LL + (long long)result.ru_utime.tv_usec;
+            long long timecost = (long long) result.ru_utime.tv_sec * 1000000LL + (long long) result.ru_utime.tv_usec;
             if (status_code == SIGXCPU || timecost > timelimit * 1000LL || Exceeded_wall_clock_time)
                 goodExit("Time Limit Exceeded", timelimit, result.ru_maxrss);
             else if (status_code == SIGIOT)
@@ -94,7 +95,7 @@ int main(int argc, char *argv[]) {
             else if (status_code == SIGXFSZ)
                 goodExit("Output Limit Exceeded", timecost / 1000, result.ru_maxrss);
             else if (result.ru_maxrss * 1024 > memorylimit)
-                goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit/1024);
+                goodExit("Memory Limit Exceeded", timecost / 1000, memorylimit / 1024);
             else if (status_code != 0)
                 goodExit("Runtime Error", timecost / 1000, result.ru_maxrss);
 
@@ -105,12 +106,13 @@ int main(int argc, char *argv[]) {
                 if (!fgets(sb, 1024, fp)) {
                     errExit("Can not get ans");
                 }
-                goodExit(strncmp(sb, "Accepted", 8) == 0 ? "Accepted" : "Wrong Answer", timecost / 1000, result.ru_maxrss);
+                goodExit(strncmp(sb, "Accepted", 8) == 0 ? "Accepted" : "Wrong Answer", timecost / 1000,
+                         result.ru_maxrss);
             }
         } else if (pid2 == 0) { //测评鸡
             dup2(pipe1[0], STDIN_FILENO);
             dup2(pipe2[1], STDOUT_FILENO);
-            execl("/bin/sh", "sh", "-c", sb, (char *)0);
+            execl("/bin/sh", "sh", "-c", sb, (char *) 0);
         }
     } else if (pid == 0) { //被测程序
         dup2(pipe1[1], STDOUT_FILENO);
@@ -121,7 +123,7 @@ int main(int argc, char *argv[]) {
         set_limit(RLIMIT_DATA, memorylimit, 0);
         set_limit(RLIMIT_FSIZE, outputlimit, 0);
         set_limit(RLIMIT_STACK, stacklimit, 0);
-        execl("/bin/sh", "sh", "-c", running_arguments, (char *)0);
+        execl("/bin/sh", "sh", "-c", running_arguments, (char *) 0);
     }
     return 0;
 }

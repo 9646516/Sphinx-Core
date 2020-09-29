@@ -173,139 +173,77 @@ pub async fn judge<T: MainServerClient>(
     let is_interactive = judge_opt.spj == INTERACTIVE_JUDGE;
     let mut last: u32 = 0;
 
-    if acm {
-        for i in judge_opt.tasks.iter() {
-            let input = get_data(&format!("{}/{}", base_url, i.input), "in");
-            let output = if is_interactive {
-                Vec::new()
-            } else {
-                get_data(&format!("{}/{}", base_url, i.output), "out")
-            };
-            if !is_interactive && input != output {
-                client.update_real_time_info(&JudgeReply {
-                    status: "DATA INVALID",
-                    mem: 0,
-                    time: 0,
-                    submission_id: uid,
-                    last: 0,
-                    score: 0,
-                    info:
-                    "input output mismatch",
-                }).await;
-                return;
-            }
-            let mut max_t = 0;
-            let mut max_m = 0;
-            for j in 0..input.len() {
-                let (status, _t, _m) = inner_judge.judge(
-                    i,
-                    &input[j],
-                    if is_interactive { "" } else { &output[j] },
-                    lang.clone(),
-                    is_interactive,
-                );
-                max_t = max_t.max(_t);
-                max_m = max_m.max(_m);
-                if status == JudgeStatus::Accepted {
-                    client.update_real_time_info(&JudgeReply {
-                        status: "RUNNING",
-                        mem: max_t,
-                        time: max_m,
-                        submission_id: uid,
-                        last: last,
-                        score: 0,
-                        info:
-                        "",
-                    }).await;
-                    last += 1;
-                } else {
-                    client.update_real_time_info(&JudgeReply {
-                        status: status.to_string(),
-                        mem: max_t,
-                        time: max_m,
-                        submission_id: uid,
-                        last: last,
-                        score: 0,
-                        info:
-                        "",
-                    }).await;
-                    return;
-                }
-            }
+    for i in judge_opt.tasks.iter() {
+        let input = get_data(&format!("{}/{}", base_url, i.input), "in");
+        let output = if is_interactive {
+            Vec::new()
+        } else {
+            get_data(&format!("{}/{}", base_url, i.output), "out")
+        };
+        if !is_interactive && input != output {
             client.update_real_time_info(&JudgeReply {
-                status: "ACCEPTED",
-                mem: max_m,
-                time: max_t,
+                status: "DATA INVALID",
+                mem: 0,
+                time: 0,
                 submission_id: uid,
-                last: last,
+                last: 0,
                 score: 0,
                 info:
-                "",
+                "input output mismatch",
             }).await;
-            last += 1;
+            return;
         }
-    } else {
-        let mut score = 0;
-        let mut res = "ACCEPTED".to_owned();
-        for i in judge_opt.tasks.iter() {
-            let input = get_data(&format!("{}/{}", base_url, i.input), "in");
-            let output = if is_interactive {
-                Vec::new()
-            } else {
-                get_data(&format!("{}/{}", base_url, i.output), "out")
-            };
-            if !is_interactive && input != output {
-                client.update_real_time_info(&JudgeReply {
-                    status: "DATA INVALID",
-                    mem: 0,
-                    time: 0,
-                    submission_id: uid,
-                    last: 0,
-                    score: 0,
-                    info:
-                    "input output mismatch",
-                }).await;
-                return;
-            }
-            let mut max_t = 0;
-            let mut max_m = 0;
-            for j in 0..input.len() {
-                let (status, _t, _m) = inner_judge.judge(
-                    i,
-                    &input[j],
-                    if is_interactive { "" } else { &output[j] },
-                    lang.clone(),
-                    is_interactive,
-                );
-                max_t = max_t.max(_t);
-                max_m = max_m.max(_m);
-                if status == JudgeStatus::Accepted {
-                    score += i.score;
-                } else {
-                    res = status.to_string().to_owned();
-                }
+        let mut max_t = 0;
+        let mut max_m = 0;
+        let mut max_status = JudgeStatus::Accepted;
+        let mut max_score = 0;
+        for j in 0..input.len() {
+            let (status, _t, _m) = inner_judge.judge(
+                i,
+                &input[j],
+                if is_interactive { "" } else { &output[j] },
+                lang.clone(),
+                is_interactive,
+            );
+            max_t = max_t.max(_t);
+            max_m = max_m.max(_m);
+            if status == JudgeStatus::Accepted {
+                max_score += i.score;
                 client.update_real_time_info(&JudgeReply {
                     status: "RUNNING",
                     mem: max_m,
                     time: max_t,
                     submission_id: uid,
-                    last,
-                    score,
-                    info:
-                    "",
+                    last: last,
+                    score: if acm { 0 } else { max_score },
+                    info: "",
                 }).await;
                 last += 1;
+            } else {
+                max_status = status;
+                client.update_real_time_info(&JudgeReply {
+                    status: status.to_string(),
+                    mem: max_m,
+                    time: max_t,
+                    submission_id: uid,
+                    last: last,
+                    score: if acm { 0 } else { max_score },
+                    info: "",
+                }).await;
+                if acm {
+                    return;
+                }
             }
-            client.update_real_time_info(&JudgeReply {
-                status: res.as_str(),
-                mem: max_m,
-                time: max_t,
-                submission_id: uid,
-                last,
-                score,
-                info:
-                "",
-            }).await;
         }
+        client.update_real_time_info(&JudgeReply {
+            status: max_status.to_string(),
+            mem: max_m,
+            time: max_t,
+            submission_id: uid,
+            last: last,
+            score: 0,
+            info: "",
+        }).await;
+        last += 1;
     }
 }

@@ -1,7 +1,6 @@
-
 extern crate sphinx_core;
 
-use sphinx_core::{ProblemConfigOptions, ProblemConfig};
+use sphinx_core::{ProblemConfig, ProblemConfigOptions};
 
 fn main() {
     let option = ProblemConfigOptions {

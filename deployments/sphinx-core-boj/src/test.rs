@@ -10,22 +10,13 @@ use rdkafka::{client::*, config::*, consumer::*, message::*, producer::*};
 
 use self::rdkafka::util::Timeout;
 
-fn produce(brokers: &str, topic_name: &str, uid: i32) {
-    let mut buf = BytesMut::with_capacity(1024);
-
-    buf.put("../../test/a+b/sb.toml");
-    let cpp = read_to_string("../../test/a+b/Main.cpp").unwrap();
+fn produce(brokers: &str, topic_name: &str, cpp: String, a: BytesMut, b: BytesMut, c: BytesMut) {
     let producer: FutureProducer = ClientConfig::new()
         .set("bootstrap.servers", brokers)
         .set("message.timeout.ms", "5000")
         .create()
         .expect("Producer creation error");
 
-    let a = buf.take();
-    buf.put_u64_be(1);
-    let b = buf.take();
-    buf.put_u64_be(uid as u64);
-    let c = buf.take();
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     let k = &format!("233");
 
@@ -99,7 +90,7 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                 }
                 consumer.commit_message(&m, CommitMode::Async).unwrap();
                 if payload != "RUNNING" {
-                    // break;
+                    break;
                 }
             }
         };
@@ -107,12 +98,43 @@ fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
 }
 
 #[test]
-fn main() {
+fn test1() {
     let topic = "in";
     let brokers = "localhost:9092";
-    for _i in 0..1 {
-        produce(brokers, topic, _i as i32);
-    }
+
+    let mut buf = BytesMut::with_capacity(1024);
+    buf.put("../../test/a+b/sb.toml");
+    let cpp = read_to_string("../../test/a+b/Main.cpp").unwrap();
+    let a = buf.take();
+    buf.put_u64_be(1);
+    let b = buf.take();
+    buf.put_u64_be(1u64);
+    let c = buf.take();
+
+    produce(brokers, topic, cpp, a, b, c);
+
+    let topics = vec!["result"];
+    let group_id = "Q2";
+    let brokers = "localhost:9092";
+    consume_and_print(brokers, group_id, &topics);
+}
+
+#[test]
+fn test2() {
+    let topic = "in";
+    let brokers = "localhost:9092";
+
+    let mut buf = BytesMut::with_capacity(1024);
+    buf.put("../../test/binary_search/sb.toml");
+    let cpp = read_to_string("../../test/binary_search/Main.cpp").unwrap();
+    let a = buf.take();
+    buf.put_u64_be(1);
+    let b = buf.take();
+    buf.put_u64_be(2u64);
+    let c = buf.take();
+
+    produce(brokers, topic, cpp, a, b, c);
+
     let topics = vec!["result"];
     let group_id = "Q2";
     let brokers = "localhost:9092";

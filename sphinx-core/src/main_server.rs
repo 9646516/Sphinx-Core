@@ -1,9 +1,10 @@
-use crate::JudgeReply;
 use async_trait::async_trait;
 
+use crate::JudgeReply;
+
 pub struct UpdateRealTimeInfoResult {
-    pub a : i32,
-    pub b : i64,
+    pub a: i32,
+    pub b: i64,
 }
 
 #[async_trait]

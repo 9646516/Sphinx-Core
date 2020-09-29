@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use std::{thread, time};
 use std::sync::RwLock;
 
@@ -13,9 +16,6 @@ use sphinx_core::{JudgeReply, Language, MainServerClient, ProblemConfig, Problem
 use sphinx_core_kafka::MainServerClientImpl;
 
 mod env;
-
-#[macro_use]
-extern crate log;
 
 
 #[cfg(test)]

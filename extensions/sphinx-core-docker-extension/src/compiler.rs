@@ -1,7 +1,9 @@
 use std::string::String;
 
 use dockworker::Docker;
-use sphinx_core::{CompileResult, CompileStatus, Language, CompilerConfig};
+
+use sphinx_core::{CompilerConfig, CompileResult, CompileStatus, Language};
+
 use crate::utils::run_cmd;
 
 pub struct Compiler<'a> {
@@ -11,7 +13,7 @@ pub struct Compiler<'a> {
 
 impl<'a> Compiler<'a> {
     pub fn new(docker: &Docker) -> Compiler {
-        Compiler{
+        Compiler {
             docker,
             cfg: &CompilerConfig::default(),
         }
@@ -26,7 +28,7 @@ impl<'a> sphinx_core::Compiler<'a> for Compiler<'a> {
     fn compile(&self, id: &str, source: String, lang: Language) -> CompileResult {
         let compile_command = format!("timeout 3s {}", lang.compile_command(source));
 
-        let (code, info) = run_cmd(self.docker, id, compile_command, );
+        let (code, info) = run_cmd(self.docker, id, compile_command);
         match code {
             0 => CompileResult {
                 status: CompileStatus::SUCCESS,

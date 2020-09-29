@@ -1,6 +1,3 @@
-
-
-
 pub trait UUIDProvider {
     fn generate(&self, uuid: &mut str);
 }
